@@ -44,4 +44,9 @@ class UtangRepositoryImpl(private val utangDao: UtangDao) : UtangRepository {
         )
         utangDao.insertUtangRecord(record)
     }
+
+    override suspend fun deleteAllUtangData() {
+        utangDao.deleteAllUtangRecords()
+        utangDao.deleteAllCustomers()
+    }
 }

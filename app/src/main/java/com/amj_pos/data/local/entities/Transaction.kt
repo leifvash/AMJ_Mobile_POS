@@ -10,5 +10,12 @@ data class Transaction(
     val totalAmount: Double,
     val totalProfit: Double, // The "Kita" for this entire transaction
     val isUtang: Boolean = false,
-    val customerId: Long? = null // Nullable if it's a guest walk-in
+    val customerId: Long? = null, // Nullable if it's a guest walk-in
+    val paymentMethod: PaymentMethod = PaymentMethod.CASH
 )
+
+enum class PaymentMethod {
+    CASH,
+    QRPH,
+    UTANG
+}

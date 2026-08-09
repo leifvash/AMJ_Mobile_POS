@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.amj_pos.data.local.db.AppDatabase
 import com.amj_pos.data.local.entities.Transaction
 import com.amj_pos.data.local.entities.TransactionItem
+import com.amj_pos.data.local.entities.DailyStat
 import com.amj_pos.data.local.entities.UtangRecord
 import com.amj_pos.data.local.entities.UtangType
 import com.amj_pos.domain.repository.TransactionRepository
@@ -21,8 +22,19 @@ class TransactionRepositoryImpl(
     override fun getDailyProfit(): Flow<Double> = 
         transactionDao.getDailyProfit().map { it ?: 0.0 }
 
+    override fun getDailyStats(days: Int): Flow<List<DailyStat>> {
+        val since = System.currentTimeMillis() - (days.toLong() * 24 * 60 * 60 * 1000)
+        return transactionDao.getDailyStats(since)
+    }
+
     override fun getAllTransactions(): Flow<List<Transaction>> = 
         transactionDao.getAllTransactions()
+
+    override fun getTransactionsByDate(dateStr: String): Flow<List<Transaction>> =
+        transactionDao.getTransactionsByDate(dateStr)
+
+    override fun getTotalSalesByDate(dateStr: String): Flow<Double> =
+        transactionDao.getTotalSalesByDate(dateStr).map { it ?: 0.0 }
 
     override suspend fun getItemsForTransaction(transactionId: Long): List<TransactionItem> = 
         transactionDao.getItemsForTransaction(transactionId)
@@ -55,6 +67,13 @@ class TransactionRepositoryImpl(
                 )
                 utangDao.insertUtangRecord(utangRecord)
             }
+        }
+    }
+
+    override suspend fun deleteAllTransactions() {
+        database.withTransaction {
+            transactionDao.deleteAllTransactions()
+            transactionDao.deleteAllTransactionItems()
         }
     }
 }

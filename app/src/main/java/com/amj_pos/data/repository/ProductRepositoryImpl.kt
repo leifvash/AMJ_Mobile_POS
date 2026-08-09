@@ -7,6 +7,10 @@ import kotlinx.coroutines.flow.Flow
 
 class ProductRepositoryImpl(private val productDao: ProductDao) : ProductRepository {
     override fun getAllProducts(): Flow<List<Product>> = productDao.getAllProducts()
+    
+    override fun getLowStockProducts(threshold: Int): Flow<List<Product>> = productDao.getLowStockProducts(threshold)
+
+    override fun searchProducts(query: String): Flow<List<Product>> = productDao.searchProducts(query)
 
     override suspend fun getProductByBarcode(barcode: String): Product? = 
         productDao.getProductByBarcode(barcode)
@@ -30,5 +34,9 @@ class ProductRepositoryImpl(private val productDao: ProductDao) : ProductReposit
             updatedAt = System.currentTimeMillis()
         )
         productDao.updateProduct(updatedProduct)
+    }
+
+    override suspend fun deleteAllProducts() {
+        productDao.deleteAllProducts()
     }
 }

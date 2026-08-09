@@ -13,4 +13,6 @@ interface UtangRepository {
     suspend fun addCustomer(customer: Customer): Long
     suspend fun recordPayment(customerId: Long, amount: Double, note: String?)
     suspend fun recordCredit(customerId: Long, amount: Double, note: String?)
+    
+    suspend fun deleteAllUtangData()
 }

@@ -2,11 +2,15 @@ package com.amj_pos.domain.repository
 
 import com.amj_pos.data.local.entities.Transaction
 import com.amj_pos.data.local.entities.TransactionItem
+import com.amj_pos.data.local.entities.DailyStat
 import kotlinx.coroutines.flow.Flow
 
 interface TransactionRepository {
     fun getDailyProfit(): Flow<Double>
+    fun getDailyStats(days: Int): Flow<List<DailyStat>>
     fun getAllTransactions(): Flow<List<Transaction>>
+    fun getTransactionsByDate(dateStr: String): Flow<List<Transaction>>
+    fun getTotalSalesByDate(dateStr: String): Flow<Double>
     suspend fun getItemsForTransaction(transactionId: Long): List<TransactionItem>
     
     /**
@@ -21,4 +25,6 @@ interface TransactionRepository {
         items: List<TransactionItem>,
         isUtang: Boolean = false
     )
+
+    suspend fun deleteAllTransactions()
 }

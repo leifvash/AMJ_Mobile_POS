@@ -2,17 +2,16 @@ package com.amj_pos.data.scanner
 
 import android.content.Context
 import com.amj_pos.domain.scanner.BarcodeScanner
-import com.google.android.gms.code.scanner.GmsBarcodeScannerOptions
-import com.google.android.gms.code.scanner.GmsBarcodeScanning
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 /**
  * Implementation of BarcodeScanner using Google Play Services Code Scanner API.
- * This does not require camera permissions as the UI is handled by Google Play Services.
  */
 class GoogleBarcodeScanner(context: Context) : BarcodeScanner {
 
