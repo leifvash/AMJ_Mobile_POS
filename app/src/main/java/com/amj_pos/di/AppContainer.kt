@@ -6,10 +6,12 @@ import com.amj_pos.data.repository.ProductRepositoryImpl
 import com.amj_pos.data.repository.TransactionRepositoryImpl
 import com.amj_pos.data.repository.UtangRepositoryImpl
 import com.amj_pos.data.scanner.GoogleBarcodeScanner
+import com.amj_pos.data.printer.BluetoothPrinterRepositoryImpl
 import com.amj_pos.domain.repository.ProductRepository
 import com.amj_pos.domain.repository.TransactionRepository
 import com.amj_pos.domain.repository.UtangRepository
 import com.amj_pos.domain.scanner.BarcodeScanner
+import com.amj_pos.domain.printer.PrinterRepository
 
 /**
  * Dependency container for manual DI. 
@@ -20,6 +22,7 @@ interface AppContainer {
     val transactionRepository: TransactionRepository
     val utangRepository: UtangRepository
     val barcodeScanner: BarcodeScanner
+    val printerRepository: PrinterRepository
 }
 
 class AppContainerImpl(private val context: Context) : AppContainer {
@@ -39,5 +42,9 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 
     override val barcodeScanner: BarcodeScanner by lazy {
         GoogleBarcodeScanner(context)
+    }
+
+    override val printerRepository: PrinterRepository by lazy {
+        BluetoothPrinterRepositoryImpl(context)
     }
 }

@@ -1,5 +1,9 @@
 package com.amj_pos.ui.checkout
 
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
@@ -40,6 +45,17 @@ fun CheckoutScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val voiceLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val text = data?.get(0) ?: ""
+            viewModel.onVoiceResult(text)
+            showManualAddSheet = true // Open search sheet with the voice text
+        }
+    }
+
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
             snackbarHostState.showSnackbar(it)
@@ -58,6 +74,15 @@ fun CheckoutScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                            putExtra(RecognizerIntent.EXTRA_PROMPT, "Say product name...")
+                        }
+                        voiceLauncher.launch(intent)
+                    }) {
+                        Icon(Icons.Default.Mic, contentDescription = "Voice Search")
+                    }
                     IconButton(onClick = { showManualAddSheet = true }) {
                         Icon(Icons.Default.Search, contentDescription = "Manual Add")
                     }

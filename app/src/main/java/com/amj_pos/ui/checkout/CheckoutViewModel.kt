@@ -6,6 +6,7 @@ import com.amj_pos.domain.repository.ProductRepository
 import com.amj_pos.domain.repository.TransactionRepository
 import com.amj_pos.domain.repository.UtangRepository
 import com.amj_pos.domain.scanner.BarcodeScanner
+import com.amj_pos.domain.printer.PrinterRepository
 import com.amj_pos.data.local.entities.Transaction
 import com.amj_pos.data.local.entities.TransactionItem
 import com.amj_pos.data.local.entities.PaymentMethod
@@ -30,7 +31,8 @@ class CheckoutViewModel(
     private val productRepository: ProductRepository,
     private val transactionRepository: TransactionRepository,
     private val utangRepository: UtangRepository,
-    private val barcodeScanner: BarcodeScanner
+    private val barcodeScanner: BarcodeScanner,
+    private val printerRepository: PrinterRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CheckoutUiState())
@@ -62,6 +64,10 @@ class CheckoutViewModel(
 
     fun onManualSearchQueryChange(query: String) {
         _manualSearchQuery.value = query
+    }
+
+    fun onVoiceResult(text: String) {
+        _manualSearchQuery.value = text
     }
 
     fun scanBarcode() {
@@ -195,6 +201,10 @@ class CheckoutViewModel(
             
             try {
                 transactionRepository.executeSale(transaction, state.items, isUtang)
+                
+                // Print Receipt
+                printerRepository.printReceipt(transaction, state.items)
+                
                 _uiState.value = CheckoutUiState() // Reset
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Checkout failed: ${e.message}") }

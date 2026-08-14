@@ -8,6 +8,8 @@ import com.amj_pos.ui.checkout.CheckoutViewModel
 import com.amj_pos.ui.dashboard.DashboardViewModel
 import com.amj_pos.ui.inventory.AddProductViewModel
 import com.amj_pos.ui.inventory.InventoryViewModel
+import com.amj_pos.ui.inventory.ProductDetailViewModel
+import com.amj_pos.ui.settings.PrinterSettingsViewModel
 import com.amj_pos.ui.settings.SettingsViewModel
 import com.amj_pos.ui.transactions.TransactionHistoryViewModel
 import com.amj_pos.ui.utang.CustomerDetailViewModel
@@ -16,7 +18,7 @@ import com.amj_pos.ui.scanner.BarcodeViewModel
 
 class ViewModelFactory(
     private val container: AppContainer,
-    private val customerId: Long? = null
+    private val entityId: Long? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
@@ -24,13 +26,20 @@ class ViewModelFactory(
                 DashboardViewModel(
                     container.transactionRepository,
                     container.utangRepository,
-                    container.productRepository
+                    container.productRepository,
+                    container.printerRepository
                 ) as T
             }
             modelClass.isAssignableFrom(CustomerDetailViewModel::class.java) -> {
                 CustomerDetailViewModel(
                     container.utangRepository,
-                    customerId ?: throw IllegalArgumentException("Customer ID required")
+                    entityId ?: throw IllegalArgumentException("ID required")
+                ) as T
+            }
+            modelClass.isAssignableFrom(ProductDetailViewModel::class.java) -> {
+                ProductDetailViewModel(
+                    container.productRepository,
+                    entityId ?: throw IllegalArgumentException("ID required")
                 ) as T
             }
             modelClass.isAssignableFrom(AnalyticsViewModel::class.java) -> {
@@ -52,6 +61,9 @@ class ViewModelFactory(
                     container.utangRepository
                 ) as T
             }
+            modelClass.isAssignableFrom(PrinterSettingsViewModel::class.java) -> {
+                PrinterSettingsViewModel(container.printerRepository) as T
+            }
             modelClass.isAssignableFrom(UtangViewModel::class.java) -> {
                 UtangViewModel(container.utangRepository) as T
             }
@@ -69,7 +81,8 @@ class ViewModelFactory(
                     container.productRepository,
                     container.transactionRepository,
                     container.utangRepository,
-                    container.barcodeScanner
+                    container.barcodeScanner,
+                    container.printerRepository
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

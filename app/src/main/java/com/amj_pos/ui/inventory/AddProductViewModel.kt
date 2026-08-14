@@ -37,6 +37,8 @@ class AddProductViewModel(
     fun onPieceRetailPriceChange(newPrice: String) = _uiState.update { it.copy(pieceRetailPrice = newPrice) }
     fun onInitialStockChange(newStock: String) = _uiState.update { it.copy(initialStockPieces = newStock) }
 
+    fun onMessageShown() = _uiState.update { it.copy(error = null) }
+
     fun scanBarcode() {
         viewModelScope.launch {
             _uiState.update { it.copy(isScanning = true) }
@@ -53,7 +55,16 @@ class AddProductViewModel(
     fun saveProduct() {
         val state = _uiState.value
         if (state.name.isBlank()) {
-            _uiState.update { it.copy(error = "Name is required") }
+            _uiState.update { it.copy(error = "Product Name is required") }
+            return
+        }
+
+        val bulkCost = state.bulkCostPrice.toDoubleOrNull()
+        val piecesPerBulk = state.piecesPerBulk.toIntOrNull()
+        val retailPrice = state.pieceRetailPrice.toDoubleOrNull()
+
+        if (bulkCost == null || piecesPerBulk == null || retailPrice == null) {
+            _uiState.update { it.copy(error = "Please fill in all prices and ratios correctly") }
             return
         }
 

@@ -15,14 +15,17 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.amj_pos.domain.printer.PrinterStatus
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -35,9 +38,17 @@ fun DashboardScreen(
     onNavigateToUtang: () -> Unit,
     onNavigateToTransactions: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToAnalytics: () -> Unit
+    onNavigateToAnalytics: () -> Unit,
+    onNavigateToPrinterSettings: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Auto-connect on Dashboard Load if not connected
+    LaunchedEffect(Unit) {
+        if (uiState.printerStatus == PrinterStatus.DISCONNECTED) {
+            viewModel.connectPrinter()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -59,6 +70,13 @@ fun DashboardScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Printer Status Bar
+            PrinterStatusBar(
+                status = uiState.printerStatus,
+                onConnect = { viewModel.connectPrinter() },
+                onSettings = onNavigateToPrinterSettings
+            )
+
             // Summary Cards
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -205,6 +223,63 @@ fun ActionCard(
             Icon(icon, contentDescription = label)
             Spacer(modifier = Modifier.height(8.dp))
             Text(label, style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+@Composable
+fun PrinterStatusBar(status: PrinterStatus, onConnect: () -> Unit, onSettings: () -> Unit) {
+    val backgroundColor = when (status) {
+        PrinterStatus.CONNECTED -> Color(0xFFE8F5E9)
+        PrinterStatus.CONNECTING -> Color(0xFFFFF3E0)
+        PrinterStatus.DISCONNECTED -> Color(0xFFF5F5F5)
+        PrinterStatus.ERROR -> Color(0xFFFFEBEE)
+    }
+    
+    val contentColor = when (status) {
+        PrinterStatus.CONNECTED -> Color(0xFF2E7D32)
+        PrinterStatus.CONNECTING -> Color(0xFFEF6C00)
+        PrinterStatus.DISCONNECTED -> Color(0xFF757575)
+        PrinterStatus.ERROR -> Color(0xFFC62828)
+    }
+
+    val statusText = when (status) {
+        PrinterStatus.CONNECTED -> "Printer Connected"
+        PrinterStatus.CONNECTING -> "Connecting to Printer..."
+        PrinterStatus.DISCONNECTED -> "Printer Disconnected"
+        PrinterStatus.ERROR -> "Printer Error (Check BT)"
+    }
+
+    Surface(
+        color = backgroundColor,
+        contentColor = contentColor,
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSettings() }
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (status == PrinterStatus.CONNECTED) Icons.Default.Inventory else Icons.Default.Settings,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(statusText, style = MaterialTheme.typography.labelLarge)
+            }
+            
+            if (status != PrinterStatus.CONNECTED && status != PrinterStatus.CONNECTING) {
+                TextButton(onClick = onConnect) {
+                    Text("Connect", style = MaterialTheme.typography.labelSmall)
+                }
+            } else {
+                Text("Settings >", style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }

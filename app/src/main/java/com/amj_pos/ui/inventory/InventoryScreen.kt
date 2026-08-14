@@ -1,5 +1,6 @@
 package com.amj_pos.ui.inventory
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,12 +23,11 @@ import com.amj_pos.data.local.entities.Product
 fun InventoryScreen(
     viewModel: InventoryViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToAddProduct: () -> Unit
+    onNavigateToAddProduct: () -> Unit,
+    onNavigateToProductDetail: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    
-    var productToRestock by remember { mutableStateOf<Product?>(null) }
 
     Scaffold(
         topBar = {
@@ -80,23 +80,12 @@ fun InventoryScreen(
                         ProductItem(
                             product = product,
                             onDelete = { viewModel.deleteProduct(product) },
-                            onRestock = { productToRestock = product }
+                            onClick = { onNavigateToProductDetail(product.id) }
                         )
                     }
                 }
             }
         }
-    }
-
-    productToRestock?.let { product ->
-        RestockDialog(
-            productName = product.name,
-            onDismiss = { productToRestock = null },
-            onConfirm = { bulkQty ->
-                viewModel.addBulkStock(product.id, bulkQty)
-                productToRestock = null
-            }
-        )
     }
 }
 
@@ -104,10 +93,12 @@ fun InventoryScreen(
 fun ProductItem(
     product: Product,
     onDelete: () -> Unit,
-    onRestock: () -> Unit
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
@@ -119,55 +110,11 @@ fun ProductItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("Stock: ${product.currentStockInPieces} pieces", style = MaterialTheme.typography.bodyMedium)
-                Text("Price: ₱${product.pieceRetailPrice}", style = MaterialTheme.typography.bodySmall)
+                Text("Price: P${product.pieceRetailPrice}", style = MaterialTheme.typography.bodySmall)
             }
-            Row {
-                TextButton(onClick = onRestock) {
-                    Text("Restock")
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
-                }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
             }
         }
     }
-}
-
-@Composable
-fun RestockDialog(
-    productName: String,
-    onDismiss: () -> Unit,
-    onConfirm: (Int) -> Unit
-) {
-    var bulkQty by remember { mutableStateOf("") }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Restock $productName") },
-        text = {
-            Column {
-                Text("How many BULK units (e.g. boxes) to add?")
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = bulkQty,
-                    onValueChange = { bulkQty = it },
-                    label = { Text("Bulk Quantity") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = { 
-                bulkQty.toIntOrNull()?.let { onConfirm(it) }
-            }) {
-                Text("Add Stock")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
 }
