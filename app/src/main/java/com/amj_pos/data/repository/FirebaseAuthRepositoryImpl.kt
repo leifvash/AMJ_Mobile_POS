@@ -1,0 +1,98 @@
+package com.amj_pos.data.repository
+
+import com.amj_pos.domain.model.User
+import com.amj_pos.domain.repository.AuthRepository
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
+
+class FirebaseAuthRepositoryImpl(
+    private val auth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
+) : AuthRepository {
+
+    override val currentUser: Flow<User?> = callbackFlow {
+        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            val firebaseUser = firebaseAuth.currentUser
+            if (firebaseUser == null) {
+                trySend(null)
+            } else {
+                // Fetch full details from Firestore
+                // Note: In a real app, you might want to handle this more robustly
+                firestore.collection("users").document(firebaseUser.uid).get()
+                    .addOnSuccessListener { doc ->
+                        val user = doc.toObject(User::class.java)
+                        trySend(user)
+                    }
+                    .addOnFailureListener {
+                        trySend(null)
+                    }
+            }
+        }
+        auth.addAuthStateListener(listener)
+        awaitClose { auth.removeAuthStateListener(listener) }
+    }
+
+    override suspend fun login(email: String, pass: String): Result<User> {
+        return try {
+            val result = auth.signInWithEmailAndPassword(email, pass).await()
+            val uid = result.user?.uid ?: throw Exception("Login failed")
+            val user = fetchUserDetails(uid) ?: throw Exception("User data not found")
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun logout() {
+        auth.signOut()
+    }
+
+    override suspend fun fetchUserDetails(uid: String): User? {
+        return try {
+            val doc = firestore.collection("users").document(uid).get().await()
+            doc.toObject(User::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    override suspend fun registerEmployee(name: String, email: String, pass: String, branchId: String): Result<Unit> {
+        return try {
+            // Use a secondary Firebase app to register the employee without logging out the owner
+            val defaultApp = FirebaseApp.getInstance()
+            val secondaryAppName = "SecondaryApp"
+            val secondaryApp = try {
+                FirebaseApp.getInstance(secondaryAppName)
+            } catch (e: Exception) {
+                FirebaseApp.initializeApp(defaultApp.applicationContext, defaultApp.options, secondaryAppName)
+            }
+            
+            val secondaryAuth = FirebaseAuth.getInstance(secondaryApp)
+            
+            val result = secondaryAuth.createUserWithEmailAndPassword(email, pass).await()
+            val uid = result.user?.uid ?: throw Exception("Registration failed")
+            
+            val employee = User(
+                uid = uid,
+                name = name,
+                email = email,
+                role = "employee",
+                assigned_branch = branchId
+            )
+            
+            firestore.collection("users").document(uid).set(employee).await()
+            
+            // Log out the secondary app immediately so it doesn't hold a session
+            secondaryAuth.signOut()
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}

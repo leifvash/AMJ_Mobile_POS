@@ -1,11 +1,14 @@
 package com.amj_pos.ui.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -14,13 +17,15 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings & Debug") },
+                title = { Text("General Settings") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -33,21 +38,54 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Data Management", style = MaterialTheme.typography.titleMedium)
+            Text("Store Profile", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+            OutlinedTextField(
+                value = uiState.storeName,
+                onValueChange = viewModel::onStoreNameChange,
+                label = { Text("Store Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = uiState.storeAddress,
+                onValueChange = viewModel::onStoreAddressChange,
+                label = { Text("Store Address") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            HorizontalDivider()
+
+            Text("Inventory Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+            OutlinedTextField(
+                value = uiState.lowStockThreshold,
+                onValueChange = viewModel::onThresholdChange,
+                label = { Text("Low Stock Alert Threshold") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("Cloud & Data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Last Cloud Sync: ${uiState.lastBackupDate}", style = MaterialTheme.typography.bodyMedium)
             
             Button(
-                onClick = viewModel::seedMockData,
+                onClick = { /* Backup logic placeholder */ },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Seed Mock Data")
+                Text("Sync Now to Firestore")
             }
 
-            Button(
-                onClick = viewModel::clearAllData,
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = { viewModel.logout() },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
             ) {
-                Text("Clear All Data")
+                Text("Logout")
             }
         }
     }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.amj_pos.domain.repository.ProductRepository
 import com.amj_pos.domain.repository.TransactionRepository
 import com.amj_pos.domain.repository.UtangRepository
+import com.amj_pos.domain.repository.AuthRepository
 import com.amj_pos.domain.scanner.BarcodeScanner
 import com.amj_pos.domain.printer.PrinterRepository
 import com.amj_pos.data.local.entities.Transaction
@@ -31,6 +32,7 @@ class CheckoutViewModel(
     private val productRepository: ProductRepository,
     private val transactionRepository: TransactionRepository,
     private val utangRepository: UtangRepository,
+    private val authRepository: AuthRepository,
     private val barcodeScanner: BarcodeScanner,
     private val printerRepository: PrinterRepository
 ) : ViewModel() {
@@ -41,7 +43,15 @@ class CheckoutViewModel(
     private val _manualSearchQuery = MutableStateFlow("")
     val manualSearchQuery: StateFlow<String> = _manualSearchQuery
 
+    private var currentUserName: String? = null
+
     init {
+        viewModelScope.launch {
+            authRepository.currentUser.collect { user ->
+                currentUserName = user?.name
+            }
+        }
+        
         viewModelScope.launch {
             utangRepository.getCustomers().collect { customers ->
                 _uiState.update { it.copy(customers = customers) }
@@ -202,8 +212,8 @@ class CheckoutViewModel(
             try {
                 transactionRepository.executeSale(transaction, state.items, isUtang)
                 
-                // Print Receipt
-                printerRepository.printReceipt(transaction, state.items)
+                // Print Receipt with Cashier Name
+                printerRepository.printReceipt(transaction, state.items, currentUserName)
                 
                 _uiState.value = CheckoutUiState() // Reset
             } catch (e: Exception) {

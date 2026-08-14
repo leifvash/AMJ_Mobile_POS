@@ -54,15 +54,16 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
         }
 
         val targetAddress = address ?: sharedPrefs.getString(KEY_PRINTER_ADDRESS, null)
-
         _connectionState.value = PrinterStatus.CONNECTING
 
         withContext(Dispatchers.IO) {
             try {
+                // Ensure previous resources are cleared before connecting
+                closeResourcesInternal()
+
                 val device = if (targetAddress != null) {
                     bluetoothAdapter.getRemoteDevice(targetAddress)
                 } else {
-                    // Auto-discovery: Find the first paired device that looks like a printer
                     bluetoothAdapter.bondedDevices.find { 
                         it.name?.contains("58", ignoreCase = true) == true || 
                         it.name?.contains("printer", ignoreCase = true) == true ||
@@ -76,34 +77,61 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
                     return@withContext
                 }
 
-                bluetoothSocket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                bluetoothSocket?.connect()
-                outputStream = bluetoothSocket?.outputStream
+                try {
+                    bluetoothSocket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                    bluetoothSocket?.connect()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    try {
+                        val method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        bluetoothSocket = method.invoke(device, 1) as BluetoothSocket
+                        bluetoothSocket?.connect()
+                    } catch (fallbackException: Exception) {
+                        fallbackException.printStackTrace()
+                        closeResourcesInternal()
+                        _connectionState.value = PrinterStatus.ERROR
+                        return@withContext
+                    }
+                }
                 
+                outputStream = bluetoothSocket?.outputStream
                 _connectedDeviceName.value = device.name
                 _connectionState.value = PrinterStatus.CONNECTED
                 
-                // Save successful address for next time
                 sharedPrefs.edit().putString(KEY_PRINTER_ADDRESS, device.address).apply()
                 
             } catch (e: Exception) {
                 e.printStackTrace()
+                closeResourcesInternal()
                 _connectedDeviceName.value = null
                 _connectionState.value = PrinterStatus.ERROR
             }
         }
     }
 
-    override fun disconnect() {
+    private fun closeResourcesInternal() {
         try {
+            outputStream?.flush()
             outputStream?.close()
+        } catch (e: Exception) {
+            // Ignored
+        } finally {
+            outputStream = null
+        }
+
+        try {
             bluetoothSocket?.close()
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Ignored
         } finally {
-            _connectedDeviceName.value = null
-            _connectionState.value = PrinterStatus.DISCONNECTED
+            bluetoothSocket = null
         }
+    }
+
+    override fun disconnect() {
+        closeResourcesInternal()
+        _connectedDeviceName.value = null
+        _connectionState.value = PrinterStatus.DISCONNECTED
     }
 
     override suspend fun printTestPage(): Boolean {
@@ -120,19 +148,30 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
                 os.write(center)
                 os.write("\n\n--- AMJ POS ---\n".toByteArray())
                 os.write("PRINTER TEST SUCCESSFUL\n".toByteArray())
-                os.write("Model: JK-5801H Compatible\n".toByteArray())
-                os.write("Date: ${Date()}\n".toByteArray())
+                os.write("32 CHARS LINE WIDTH TEST:\n".toByteArray())
+                os.write("12345678901234567890123456789012\n".toByteArray())
                 os.write("--------------------------------\n".toByteArray())
-                os.write(byteArrayOf(10, 10, 10, 10)) // Feed
+                os.write(byteArrayOf(10, 10, 10, 10))
                 os.flush()
                 true
             } catch (e: Exception) {
+                e.printStackTrace()
                 false
             }
         }
     }
 
-    override suspend fun printReceipt(transaction: Transaction, items: List<TransactionItem>): Boolean {
+    private fun formatLine(left: String, right: String): String {
+        val totalWidth = 32
+        val spaceCount = totalWidth - left.length - right.length
+        return if (spaceCount > 0) {
+            left + " ".repeat(spaceCount) + right
+        } else {
+            left.take(totalWidth - right.length - 1) + " " + right
+        }
+    }
+
+    override suspend fun printReceipt(transaction: Transaction, items: List<TransactionItem>, cashierName: String?): Boolean {
         if (_connectionState.value != PrinterStatus.CONNECTED) {
             connect()
             if (_connectionState.value != PrinterStatus.CONNECTED) return false
@@ -141,11 +180,8 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
         return withContext(Dispatchers.IO) {
             try {
                 val os = outputStream ?: return@withContext false
-                
-                // ESC/POS Commands
                 val ESC: Byte = 27
                 val LF: Byte = 10
-                
                 val center = byteArrayOf(ESC, 97, 1)
                 val left = byteArrayOf(ESC, 97, 0)
                 val boldOn = byteArrayOf(ESC, 69, 1)
@@ -161,25 +197,30 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
                 os.write("Cagayan de Oro City\n".toByteArray())
                 
                 val sdf = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
-                os.write("${sdf.format(Date())}\n".toByteArray())
+                os.write("${sdf.format(Date(transaction.timestamp))}\n".toByteArray())
+                
+                cashierName?.let {
+                    os.write("Cashier: ${it.take(23)}\n".toByteArray())
+                }
                 
                 os.write("--------------------------------\n".toByteArray())
-                os.write(left)
                 
+                os.write(left)
                 items.forEach { item ->
-                    val line = "${item.productName}\n"
-                    val details = "  ${item.quantity} x P${item.sellPricePerPiece} = P${item.sellPricePerPiece * item.quantity}\n"
-                    os.write(line.toByteArray())
-                    os.write(details.toByteArray())
+                    os.write("${item.productName.take(32)}\n".toByteArray())
+                    val qtyPrice = "${item.quantity} x P${item.sellPricePerPiece}"
+                    val subtotal = "P${item.sellPricePerPiece * item.quantity}"
+                    os.write("${formatLine(qtyPrice, subtotal)}\n".toByteArray())
                 }
                 
                 os.write("--------------------------------\n".toByteArray())
                 os.write(boldOn)
-                os.write("TOTAL: P${transaction.totalAmount}\n".toByteArray())
+                os.write("${formatLine("TOTAL:", "P${transaction.totalAmount}")}\n".toByteArray())
                 os.write(boldOff)
+                
                 os.write(center)
                 os.write("\nThank You! Come Again.\n".toByteArray())
-                os.write(byteArrayOf(LF, LF, LF, LF)) // Feed lines
+                os.write(byteArrayOf(LF, LF, LF, LF))
                 
                 os.flush()
                 true

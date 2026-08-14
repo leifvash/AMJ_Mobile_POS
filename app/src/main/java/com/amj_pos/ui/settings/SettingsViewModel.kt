@@ -1,36 +1,58 @@
 package com.amj_pos.ui.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.amj_pos.data.local.entities.Product
-import com.amj_pos.domain.repository.ProductRepository
-import com.amj_pos.domain.repository.TransactionRepository
-import com.amj_pos.domain.repository.UtangRepository
+import com.amj_pos.domain.repository.AuthRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class SettingsViewModel(
-    private val productRepository: ProductRepository,
-    private val transactionRepository: TransactionRepository,
-    private val utangRepository: UtangRepository
-) : ViewModel() {
+data class SettingsUiState(
+    val storeName: String = "",
+    val storeAddress: String = "",
+    val lowStockThreshold: String = "5",
+    val lastBackupDate: String = "Never"
+)
 
-    fun clearAllData() {
-        viewModelScope.launch {
-            transactionRepository.deleteAllTransactions()
-            productRepository.deleteAllProducts()
-            utangRepository.deleteAllUtangData()
+class SettingsViewModel(
+    context: Context,
+    private val authRepository: AuthRepository
+) : ViewModel() {
+    private val sharedPrefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+    
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState
+
+    init {
+        _uiState.update { it.copy(
+            storeName = sharedPrefs.getString("store_name", "AMJ SARI-SARI STORE") ?: "AMJ SARI-SARI STORE",
+            storeAddress = sharedPrefs.getString("store_address", "NHA Graceville, Mambuaya, Cagayan de Oro City") ?: "",
+            lowStockThreshold = sharedPrefs.getInt("low_stock_threshold", 5).toString()
+        ) }
+    }
+
+    fun onStoreNameChange(name: String) {
+        _uiState.update { it.copy(storeName = name) }
+        sharedPrefs.edit().putString("store_name", name).apply()
+    }
+
+    fun onStoreAddressChange(address: String) {
+        _uiState.update { it.copy(storeAddress = address) }
+        sharedPrefs.edit().putString("store_address", address).apply()
+    }
+
+    fun onThresholdChange(value: String) {
+        _uiState.update { it.copy(lowStockThreshold = value) }
+        value.toIntOrNull()?.let {
+            sharedPrefs.edit().putInt("low_stock_threshold", it).apply()
         }
     }
 
-    fun seedMockData() {
+    fun logout() {
         viewModelScope.launch {
-            val mockProducts = listOf(
-                Product(name = "Kopiko Brown Sachet", barcode = "123456", bulkCostPrice = 100.0, piecesPerBulk = 12, pieceRetailPrice = 10.0, currentStockInPieces = 48),
-                Product(name = "Lucky Me! Pancit Canton", barcode = "789012", bulkCostPrice = 600.0, piecesPerBulk = 50, pieceRetailPrice = 15.0, currentStockInPieces = 100),
-                Product(name = "Coca-Cola 290ml", barcode = "345678", bulkCostPrice = 240.0, piecesPerBulk = 12, pieceRetailPrice = 25.0, currentStockInPieces = 24),
-                Product(name = "Silver Swan Soy Sauce", barcode = "901234", bulkCostPrice = 150.0, piecesPerBulk = 10, pieceRetailPrice = 18.0, currentStockInPieces = 20)
-            )
-            mockProducts.forEach { productRepository.upsertProduct(it) }
+            authRepository.logout()
         }
     }
 }

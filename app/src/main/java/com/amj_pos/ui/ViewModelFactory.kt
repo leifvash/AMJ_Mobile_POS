@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.amj_pos.di.AppContainer
 import com.amj_pos.ui.analytics.AnalyticsViewModel
+import com.amj_pos.ui.auth.AuthViewModel
+import com.amj_pos.ui.auth.EmployeeRegistrationViewModel
 import com.amj_pos.ui.checkout.CheckoutViewModel
 import com.amj_pos.ui.dashboard.DashboardViewModel
 import com.amj_pos.ui.inventory.AddProductViewModel
@@ -27,8 +29,15 @@ class ViewModelFactory(
                     container.transactionRepository,
                     container.utangRepository,
                     container.productRepository,
-                    container.printerRepository
+                    container.printerRepository,
+                    container.authRepository
                 ) as T
+            }
+            modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
+                AuthViewModel(container.authRepository) as T
+            }
+            modelClass.isAssignableFrom(EmployeeRegistrationViewModel::class.java) -> {
+                EmployeeRegistrationViewModel(container.authRepository) as T
             }
             modelClass.isAssignableFrom(CustomerDetailViewModel::class.java) -> {
                 CustomerDetailViewModel(
@@ -55,11 +64,7 @@ class ViewModelFactory(
                 ) as T
             }
             modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
-                SettingsViewModel(
-                    container.productRepository,
-                    container.transactionRepository,
-                    container.utangRepository
-                ) as T
+                SettingsViewModel(container.context, container.authRepository) as T
             }
             modelClass.isAssignableFrom(PrinterSettingsViewModel::class.java) -> {
                 PrinterSettingsViewModel(container.printerRepository) as T
@@ -81,6 +86,7 @@ class ViewModelFactory(
                     container.productRepository,
                     container.transactionRepository,
                     container.utangRepository,
+                    container.authRepository,
                     container.barcodeScanner,
                     container.printerRepository
                 ) as T

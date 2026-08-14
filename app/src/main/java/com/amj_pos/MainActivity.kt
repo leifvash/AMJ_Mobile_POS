@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -18,6 +19,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.amj_pos.ui.ViewModelFactory
 import com.amj_pos.ui.analytics.AnalyticsScreen
+import com.amj_pos.ui.auth.AuthViewModel
+import com.amj_pos.ui.auth.EmployeeRegistrationScreen
+import com.amj_pos.ui.auth.LoginScreen
 import com.amj_pos.ui.checkout.CheckoutScreen
 import com.amj_pos.ui.dashboard.DashboardScreen
 import com.amj_pos.ui.inventory.AddProductScreen
@@ -34,9 +38,7 @@ class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        // Handle results if needed
-    }
+    ) { _ -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,8 +55,29 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    val authViewModel: AuthViewModel = viewModel(factory = viewModelFactory)
+                    val currentUser by authViewModel.currentUser.collectAsState()
+
+                    LaunchedEffect(currentUser) {
+                        if (currentUser == null) {
+                            navController.navigate("login") {
+                                popUpTo(0)
+                            }
+                        } else {
+                            // Both roles now start at the Dashboard
+                            navController.navigate("dashboard") {
+                                popUpTo(0)
+                            }
+                        }
+                    }
                     
-                    NavHost(navController = navController, startDestination = "dashboard") {
+                    NavHost(navController = navController, startDestination = "login") {
+                        composable("login") {
+                            LoginScreen(
+                                viewModel = authViewModel,
+                                onLoginSuccess = { /* Managed by LaunchedEffect */ }
+                            )
+                        }
                         composable("dashboard") {
                             DashboardScreen(
                                 viewModel = viewModel(factory = viewModelFactory),
@@ -64,7 +87,14 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToTransactions = { navController.navigate("transactions") },
                                 onNavigateToSettings = { navController.navigate("settings") },
                                 onNavigateToAnalytics = { navController.navigate("analytics") },
-                                onNavigateToPrinterSettings = { navController.navigate("printer_settings") }
+                                onNavigateToPrinterSettings = { navController.navigate("printer_settings") },
+                                onNavigateToRegistration = { navController.navigate("employee_registration") }
+                            )
+                        }
+                        composable("employee_registration") {
+                            EmployeeRegistrationScreen(
+                                viewModel = viewModel(factory = viewModelFactory),
+                                onNavigateBack = { navController.popBackStack() }
                             )
                         }
                         composable("printer_settings") {
@@ -94,7 +124,11 @@ class MainActivity : ComponentActivity() {
                         composable("checkout") {
                             CheckoutScreen(
                                 viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() }
+                                onNavigateBack = { 
+                                    if (currentUser?.role?.lowercase() == "owner") {
+                                        navController.popBackStack()
+                                    }
+                                }
                             )
                         }
                         composable("inventory") {
@@ -102,7 +136,8 @@ class MainActivity : ComponentActivity() {
                                 viewModel = viewModel(factory = viewModelFactory),
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateToAddProduct = { navController.navigate("add_product") },
-                                onNavigateToProductDetail = { id -> navController.navigate("product_detail/$id") }
+                                onNavigateToProductDetail = { id -> navController.navigate("product_detail/$id") },
+                                userRole = currentUser?.role?.lowercase() ?: "employee"
                             )
                         }
                         composable("product_detail/{productId}") { backStackEntry ->

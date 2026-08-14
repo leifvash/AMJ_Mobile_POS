@@ -24,7 +24,8 @@ fun InventoryScreen(
     viewModel: InventoryViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAddProduct: () -> Unit,
-    onNavigateToProductDetail: (Long) -> Unit
+    onNavigateToProductDetail: (Long) -> Unit,
+    userRole: String = "employee"
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -41,8 +42,10 @@ fun InventoryScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToAddProduct) {
-                Icon(Icons.Default.Add, contentDescription = "Add Product")
+            if (userRole == "owner") {
+                FloatingActionButton(onClick = onNavigateToAddProduct) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Product")
+                }
             }
         }
     ) { paddingValues ->
@@ -79,8 +82,9 @@ fun InventoryScreen(
                     items(uiState.products, key = { it.id }) { product ->
                         ProductItem(
                             product = product,
-                            onDelete = { viewModel.deleteProduct(product) },
-                            onClick = { onNavigateToProductDetail(product.id) }
+                            onDelete = { if (userRole == "owner") viewModel.deleteProduct(product) },
+                            onClick = { if (userRole == "owner") onNavigateToProductDetail(product.id) },
+                            userRole = userRole
                         )
                     }
                 }
@@ -93,12 +97,13 @@ fun InventoryScreen(
 fun ProductItem(
     product: Product,
     onDelete: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    userRole: String
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable(enabled = userRole == "owner") { onClick() }
     ) {
         Row(
             modifier = Modifier
@@ -112,8 +117,10 @@ fun ProductItem(
                 Text("Stock: ${product.currentStockInPieces} pieces", style = MaterialTheme.typography.bodyMedium)
                 Text("Price: P${product.pieceRetailPrice}", style = MaterialTheme.typography.bodySmall)
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+            if (userRole == "owner") {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }

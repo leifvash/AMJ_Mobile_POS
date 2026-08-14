@@ -8,8 +8,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
@@ -39,12 +41,13 @@ fun DashboardScreen(
     onNavigateToTransactions: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAnalytics: () -> Unit,
-    onNavigateToPrinterSettings: () -> Unit
+    onNavigateToPrinterSettings: () -> Unit,
+    onNavigateToRegistration: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     // Auto-connect on Dashboard Load if not connected
-    LaunchedEffect(Unit) {
+    LaunchedEffect(uiState.printerStatus) {
         if (uiState.printerStatus == PrinterStatus.DISCONNECTED) {
             viewModel.connectPrinter()
         }
@@ -53,10 +56,23 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AMJ Sari-Sari POS", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Column {
+                        Text("AMJ Sari-Sari POS", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        if (uiState.userName.isNotBlank()) {
+                            Text("Hi, ${uiState.userName}!", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                },
                 actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    if (uiState.userRole == "owner") {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        }
+                    } else {
+                        IconButton(onClick = { viewModel.logout() }) {
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
+                        }
                     }
                 }
             )
@@ -111,10 +127,12 @@ fun DashboardScreen(
 
             // Grid Actions - Using Column/Row instead of LazyVerticalGrid inside a scrollable column
             DashboardActionGrid(
+                userRole = uiState.userRole,
                 onNavigateToCheckout = onNavigateToCheckout,
                 onNavigateToInventory = onNavigateToInventory,
                 onNavigateToUtang = onNavigateToUtang,
-                onNavigateToTransactions = onNavigateToTransactions
+                onNavigateToTransactions = onNavigateToTransactions,
+                onNavigateToRegistration = onNavigateToRegistration
             )
         }
     }
@@ -148,10 +166,12 @@ fun LowStockAlertSection(products: List<com.amj_pos.data.local.entities.Product>
 
 @Composable
 fun DashboardActionGrid(
+    userRole: String,
     onNavigateToCheckout: () -> Unit,
     onNavigateToInventory: () -> Unit,
     onNavigateToUtang: () -> Unit,
-    onNavigateToTransactions: () -> Unit
+    onNavigateToTransactions: () -> Unit,
+    onNavigateToRegistration: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -161,6 +181,12 @@ fun DashboardActionGrid(
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             ActionCard(label = "Utang Ledger", icon = Icons.Default.People, onClick = onNavigateToUtang, modifier = Modifier.weight(1f))
             ActionCard(label = "Transactions", icon = Icons.Default.Receipt, onClick = onNavigateToTransactions, modifier = Modifier.weight(1f))
+        }
+        if (userRole == "owner") {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                ActionCard(label = "Add Employee", icon = Icons.Default.PersonAdd, onClick = onNavigateToRegistration, modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
     }
 }

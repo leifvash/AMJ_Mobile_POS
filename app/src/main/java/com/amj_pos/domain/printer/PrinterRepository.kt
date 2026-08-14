@@ -13,7 +13,7 @@ interface PrinterRepository {
 
     suspend fun connect(address: String? = null)
     fun disconnect()
-    suspend fun printReceipt(transaction: Transaction, items: List<TransactionItem>): Boolean
+    suspend fun printReceipt(transaction: Transaction, items: List<TransactionItem>, cashierName: String? = null): Boolean
     suspend fun printTestPage(): Boolean
     fun getPairedDevices(): List<BluetoothDeviceInfo>
 }
