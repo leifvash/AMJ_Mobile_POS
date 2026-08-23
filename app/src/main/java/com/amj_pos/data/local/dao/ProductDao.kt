@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProductDao {
-    @Query("SELECT * FROM products ORDER BY name ASC")
+    @Query("SELECT * FROM products WHERE isArchived = 0 ORDER BY name ASC")
     fun getAllProducts(): Flow<List<Product>>
 
-    @Query("SELECT * FROM products WHERE name LIKE '%' || :query || '%' OR barcode LIKE '%' || :query || '%' ORDER BY name ASC")
+    @Query("SELECT * FROM products WHERE isArchived = 0 AND (name LIKE '%' || :query || '%' OR barcode LIKE '%' || :query || '%') ORDER BY name ASC")
     fun searchProducts(query: String): Flow<List<Product>>
 
     @Query("SELECT * FROM products WHERE barcode = :barcode LIMIT 1")
@@ -18,7 +18,7 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :id")
     suspend fun getProductById(id: Long): Product?
 
-    @Query("SELECT * FROM products WHERE currentStockInPieces < :threshold ORDER BY currentStockInPieces ASC")
+    @Query("SELECT * FROM products WHERE isArchived = 0 AND currentStock < :threshold ORDER BY currentStock ASC")
     fun getLowStockProducts(threshold: Int): Flow<List<Product>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -27,11 +27,17 @@ interface ProductDao {
     @Update
     suspend fun updateProduct(product: Product)
 
+    @Query("UPDATE products SET isArchived = 1 WHERE id = :productId")
+    suspend fun archiveProduct(productId: Long)
+
     @Delete
     suspend fun deleteProduct(product: Product)
 
-    @Query("UPDATE products SET currentStockInPieces = currentStockInPieces - :quantity WHERE id = :productId")
-    suspend fun reduceStock(productId: Long, quantity: Int)
+    @Query("UPDATE products SET currentStock = currentStock - :quantity WHERE id = :productId")
+    suspend fun reduceStock(productId: Long, quantity: Double)
+
+    @Query("UPDATE products SET currentStock = currentStock + :quantity WHERE id = :productId")
+    suspend fun restoreStock(productId: Long, quantity: Double)
 
     @Query("DELETE FROM products")
     suspend fun deleteAllProducts()

@@ -111,9 +111,10 @@ fun CheckoutScreen(
                     items(uiState.items) { item ->
                         CartItem(
                             item = item,
-                            onIncrement = { viewModel.updateQuantity(item.productId, 1) },
-                            onDecrement = { viewModel.updateQuantity(item.productId, -1) },
-                            onRemove = { viewModel.removeItemFromCart(item.productId) }
+                            onIncrement = { viewModel.updateQuantity(item.productId, item.unitType, 1) },
+                            onDecrement = { viewModel.updateQuantity(item.productId, item.unitType, -1) },
+                            onRemove = { viewModel.removeItemFromCart(item.productId, item.unitType) },
+                            onUnitToggle = { viewModel.toggleUnit(item.productId, item.unitType) }
                         )
                     }
                 }
@@ -300,7 +301,7 @@ fun CheckoutScreen(
                     items(uiState.searchProducts) { product ->
                         ListItem(
                             headlineContent = { Text(product.name) },
-                            supportingContent = { Text("Stock: ${product.currentStockInPieces} | ₱${product.pieceRetailPrice}") },
+                            supportingContent = { Text("Stock: ${product.currentStock} ${product.unitName}s | ₱${product.unitPrice} per ${product.unitName}") },
                             trailingContent = {
                                 Button(
                                     onClick = { 
@@ -308,7 +309,7 @@ fun CheckoutScreen(
                                         showManualAddSheet = false
                                         viewModel.onManualSearchQueryChange("")
                                     },
-                                    enabled = product.currentStockInPieces > 0
+                                    enabled = product.currentStock > 0
                                 ) {
                                     Text("Add")
                                 }
@@ -326,7 +327,8 @@ fun CartItem(
     item: TransactionItem,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onUnitToggle: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -336,7 +338,12 @@ fun CartItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.productName, fontWeight = FontWeight.Bold)
-                Text("₱${item.sellPricePerPiece} per piece")
+                SuggestionChip(
+                    onClick = onUnitToggle,
+                    label = { Text("${item.unitType} ${item.unitName}") },
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                Text("₱${item.sellPrice} total", style = MaterialTheme.typography.bodySmall)
             }
             
             Row(
@@ -346,14 +353,15 @@ fun CartItem(
                 IconButton(onClick = onDecrement) {
                     Icon(Icons.Default.Remove, contentDescription = "Decrease")
                 }
-                Text("${item.quantity}", style = MaterialTheme.typography.titleMedium)
+                
+                // Displaying quantity as units (1, 2, 3...) or halves (0.5, 1.5...)
+                // We'll show the actual count of 'units' for wholesale clarity
+                Text("${item.quantity} pcs", style = MaterialTheme.typography.bodyMedium)
+                
                 IconButton(onClick = onIncrement) {
                     Icon(Icons.Default.Add, contentDescription = "Increase")
                 }
                 
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text("₱${item.sellPricePerPiece * item.quantity}", fontWeight = FontWeight.Bold)
                 IconButton(onClick = onRemove) {
                     Icon(Icons.Default.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
                 }

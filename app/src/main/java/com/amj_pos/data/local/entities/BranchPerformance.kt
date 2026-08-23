@@ -1,6 +1,6 @@
 package com.amj_pos.data.local.entities
 
-data class DailyStat(
-    val date: String,
+data class BranchPerformance(
+    val branchName: String,
     val totalSales: Double
 )

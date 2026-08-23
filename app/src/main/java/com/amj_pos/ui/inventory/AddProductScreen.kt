@@ -6,10 +6,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
@@ -21,6 +23,10 @@ fun AddProductScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    
+    var showCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
@@ -33,6 +39,35 @@ fun AddProductScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.onMessageShown()
         }
+    }
+
+    if (showCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showCategoryDialog = false },
+            title = { Text("Add New Category") },
+            text = {
+                OutlinedTextField(
+                    value = newCategoryName,
+                    onValueChange = { newCategoryName = it },
+                    label = { Text("Category Name") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newCategoryName.isNotBlank()) {
+                            viewModel.addCategory(newCategoryName)
+                            viewModel.onCategoryChange(newCategoryName)
+                            newCategoryName = ""
+                            showCategoryDialog = false
+                        }
+                    }
+                ) { Text("Add") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCategoryDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 
     Scaffold(
@@ -63,50 +98,107 @@ fun AddProductScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = uiState.barcode,
                     onValueChange = viewModel::onBarcodeChange,
                     label = { Text("Barcode") },
+                    enabled = !uiState.hasNoBarcode,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = viewModel::scanBarcode) {
+                IconButton(onClick = viewModel::scanBarcode, enabled = !uiState.hasNoBarcode) {
                     Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan")
                 }
             }
+            
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Checkbox(
+                    checked = uiState.hasNoBarcode,
+                    onCheckedChange = viewModel::onNoBarcodeToggle
+                )
+                Text("This product has no barcode", style = MaterialTheme.typography.bodyMedium)
+            }
 
-            Text("Tingoting Logic (Bulk to Piece)", style = MaterialTheme.typography.titleSmall)
+            // Category Selection
+            Box(modifier = Modifier.fillMaxWidth()) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = uiState.category,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        uiState.categories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category.name) },
+                                onClick = {
+                                    viewModel.onCategoryChange(category.name)
+                                    expanded = false
+                                }
+                            )
+                        }
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { 
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Add, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Add New Category", fontWeight = FontWeight.Bold)
+                                }
+                            },
+                            onClick = {
+                                showCategoryDialog = true
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Text("Wholesale Details", style = MaterialTheme.typography.titleSmall)
+
+            OutlinedTextField(
+                value = uiState.unitName,
+                onValueChange = viewModel::onUnitNameChange,
+                label = { Text("Unit Name (e.g., Case, Pack, Box)") },
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = uiState.bulkCostPrice,
-                    onValueChange = viewModel::onBulkCostPriceChange,
-                    label = { Text("Bulk Cost (₱)") },
+                    value = uiState.unitPrice,
+                    onValueChange = viewModel::onUnitPriceChange,
+                    label = { Text("Unit Price (₱)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
-                    value = uiState.piecesPerBulk,
-                    onValueChange = viewModel::onPiecesPerBulkChange,
-                    label = { Text("Pieces per Bulk") },
+                    value = uiState.piecesPerUnit,
+                    onValueChange = viewModel::onPiecesPerUnitChange,
+                    label = { Text("Pieces per Unit") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
             }
 
             OutlinedTextField(
-                value = uiState.pieceRetailPrice,
-                onValueChange = viewModel::onPieceRetailPriceChange,
-                label = { Text("Retail Price per Piece (₱)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = uiState.initialStockPieces,
+                value = uiState.initialStockUnits,
                 onValueChange = viewModel::onInitialStockChange,
-                label = { Text("Initial Stock (Pieces)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                label = { Text("Initial Stock (Total ${uiState.unitName}s)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
 

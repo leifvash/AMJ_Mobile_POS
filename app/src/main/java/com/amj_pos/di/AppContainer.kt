@@ -2,12 +2,15 @@ package com.amj_pos.di
 
 import android.content.Context
 import com.amj_pos.data.local.db.DatabaseProvider
+import androidx.work.WorkManager
+import com.amj_pos.data.repository.CategoryRepositoryImpl
 import com.amj_pos.data.repository.ProductRepositoryImpl
 import com.amj_pos.data.repository.TransactionRepositoryImpl
 import com.amj_pos.data.repository.UtangRepositoryImpl
 import com.amj_pos.data.scanner.GoogleBarcodeScanner
 import com.amj_pos.data.printer.BluetoothPrinterRepositoryImpl
 import com.amj_pos.data.repository.FirebaseAuthRepositoryImpl
+import com.amj_pos.domain.repository.CategoryRepository
 import com.amj_pos.domain.repository.ProductRepository
 import com.amj_pos.domain.repository.TransactionRepository
 import com.amj_pos.domain.repository.UtangRepository
@@ -29,7 +32,9 @@ import kotlinx.coroutines.launch
  */
 interface AppContainer {
     val context: Context
+    val workManager: WorkManager
     val productRepository: ProductRepository
+    val categoryRepository: CategoryRepository
     val transactionRepository: TransactionRepository
     val utangRepository: UtangRepository
     val barcodeScanner: BarcodeScanner
@@ -40,6 +45,8 @@ interface AppContainer {
 class AppContainerImpl(override val context: Context) : AppContainer {
     private val database by lazy { DatabaseProvider.getDatabase(context) }
     
+    override val workManager: WorkManager by lazy { WorkManager.getInstance(context) }
+
     private val firestore by lazy { 
         FirebaseFirestore.getInstance()
     }
@@ -57,11 +64,15 @@ class AppContainerImpl(override val context: Context) : AppContainer {
     private val auth by lazy { FirebaseAuth.getInstance() }
 
     override val productRepository: ProductRepository by lazy {
-        ProductRepositoryImpl(database.productDao())
+        ProductRepositoryImpl(database, firestore, workManager)
+    }
+
+    override val categoryRepository: CategoryRepository by lazy {
+        CategoryRepositoryImpl(database.categoryDao(), firestore)
     }
 
     override val transactionRepository: TransactionRepository by lazy {
-        TransactionRepositoryImpl(database)
+        TransactionRepositoryImpl(database, firestore, workManager)
     }
 
     override val utangRepository: UtangRepository by lazy {

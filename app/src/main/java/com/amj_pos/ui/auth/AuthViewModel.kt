@@ -18,9 +18,20 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
             initialValue = null
         )
 
-    fun login(email: String, pass: String, onResult: (Result<User>) -> Unit) {
+    val selectedBranch: StateFlow<String?> = authRepository.selectedBranch
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    fun selectBranch(branch: String) {
+        authRepository.setSelectedBranch(branch)
+    }
+
+    fun login(username: String, pass: String, onResult: (Result<User>) -> Unit) {
         viewModelScope.launch {
-            val result = authRepository.login(email, pass)
+            val result = authRepository.login(username, pass)
             onResult(result)
         }
     }

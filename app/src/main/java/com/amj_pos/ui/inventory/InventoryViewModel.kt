@@ -45,24 +45,24 @@ class InventoryViewModel(
     fun seedMockData() {
         viewModelScope.launch {
             val mockProducts = listOf(
-                Product(name = "Kopiko Brown Sachet", barcode = "123456", bulkCostPrice = 100.0, piecesPerBulk = 12, pieceRetailPrice = 10.0, currentStockInPieces = 48),
-                Product(name = "Lucky Me! Pancit Canton", barcode = "789012", bulkCostPrice = 600.0, piecesPerBulk = 50, pieceRetailPrice = 15.0, currentStockInPieces = 100),
-                Product(name = "Coca-Cola 290ml", barcode = "345678", bulkCostPrice = 240.0, piecesPerBulk = 12, pieceRetailPrice = 25.0, currentStockInPieces = 24),
-                Product(name = "Silver Swan Soy Sauce", barcode = "901234", bulkCostPrice = 150.0, piecesPerBulk = 10, pieceRetailPrice = 18.0, currentStockInPieces = 20)
+                Product(name = "Kopiko Brown Sachet", barcode = "123456", unitName = "Pack", piecesPerUnit = 12, unitPrice = 100.0, currentStock = 4.0),
+                Product(name = "Lucky Me! Pancit Canton", barcode = "789012", unitName = "Box", piecesPerUnit = 50, unitPrice = 600.0, currentStock = 2.0),
+                Product(name = "Coca-Cola 290ml", barcode = "345678", unitName = "Case", piecesPerUnit = 12, unitPrice = 240.0, currentStock = 2.0),
+                Product(name = "Silver Swan Soy Sauce", barcode = "901234", unitName = "Pack", piecesPerUnit = 10, unitPrice = 150.0, currentStock = 2.0)
             )
             mockProducts.forEach { productRepository.upsertProduct(it) }
+        }
+    }
+
+    fun archiveProduct(productId: Long) {
+        viewModelScope.launch {
+            productRepository.archiveProduct(productId)
         }
     }
 
     fun deleteProduct(product: Product) {
         viewModelScope.launch {
             productRepository.deleteProduct(product)
-        }
-    }
-
-    fun addBulkStock(productId: Long, bulkQuantity: Int) {
-        viewModelScope.launch {
-            productRepository.addBulkStock(productId, bulkQuantity)
         }
     }
 }

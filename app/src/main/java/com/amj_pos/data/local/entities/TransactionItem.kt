@@ -31,8 +31,8 @@ data class TransactionItem(
     val transactionId: Long,
     val productId: Long,
     val productName: String, // Denormalized for receipt history
-    val quantity: Int,
-    val sellPricePerPiece: Double,
-    val costPricePerPiece: Double,
-    val profit: Double // (sellPrice - costPrice) * quantity
+    val quantity: Double, // Number of units sold (e.g., 0.5, 1.0, 2.0)
+    val sellPrice: Double, // Total price for this line item
+    val unitType: String = "Whole", // "Whole" or "Half"
+    val unitName: String = "Case" // e.g., "Case", "Pack"
 )

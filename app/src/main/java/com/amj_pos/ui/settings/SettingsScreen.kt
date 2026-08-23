@@ -18,8 +18,17 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.syncMessage) {
+        uiState.syncMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSyncMessage()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("General Settings") },
@@ -72,10 +81,19 @@ fun SettingsScreen(
             Text("Last Cloud Sync: ${uiState.lastBackupDate}", style = MaterialTheme.typography.bodyMedium)
             
             Button(
-                onClick = { /* Backup logic placeholder */ },
-                modifier = Modifier.fillMaxWidth()
+                onClick = { viewModel.syncData() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isSyncing
             ) {
-                Text("Sync Now to Firestore")
+                if (uiState.isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Sync Now to Firestore")
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

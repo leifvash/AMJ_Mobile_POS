@@ -12,7 +12,7 @@ object DatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "sari_sari_pos_db"
-            ).fallbackToDestructiveMigration() // For development; use migrations for production
+            )
             .build()
             INSTANCE = instance
             instance

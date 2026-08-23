@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import com.amj_pos.ui.ViewModelFactory
 import com.amj_pos.ui.analytics.AnalyticsScreen
 import com.amj_pos.ui.auth.AuthViewModel
+import com.amj_pos.ui.auth.BranchSelectionScreen
 import com.amj_pos.ui.auth.EmployeeRegistrationScreen
 import com.amj_pos.ui.auth.LoginScreen
 import com.amj_pos.ui.checkout.CheckoutScreen
@@ -57,14 +58,18 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val authViewModel: AuthViewModel = viewModel(factory = viewModelFactory)
                     val currentUser by authViewModel.currentUser.collectAsState()
+                    val selectedBranch by authViewModel.selectedBranch.collectAsState()
 
-                    LaunchedEffect(currentUser) {
+                    LaunchedEffect(currentUser, selectedBranch) {
                         if (currentUser == null) {
                             navController.navigate("login") {
                                 popUpTo(0)
                             }
+                        } else if (selectedBranch == null) {
+                            navController.navigate("branch_selection") {
+                                popUpTo(0)
+                            }
                         } else {
-                            // Both roles now start at the Dashboard
                             navController.navigate("dashboard") {
                                 popUpTo(0)
                             }
@@ -76,6 +81,12 @@ class MainActivity : ComponentActivity() {
                             LoginScreen(
                                 viewModel = authViewModel,
                                 onLoginSuccess = { /* Managed by LaunchedEffect */ }
+                            )
+                        }
+                        composable("branch_selection") {
+                            BranchSelectionScreen(
+                                viewModel = authViewModel,
+                                onBranchSelected = { /* Managed by LaunchedEffect */ }
                             )
                         }
                         composable("dashboard") {
@@ -124,11 +135,7 @@ class MainActivity : ComponentActivity() {
                         composable("checkout") {
                             CheckoutScreen(
                                 viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { 
-                                    if (currentUser?.role?.lowercase() == "owner") {
-                                        navController.popBackStack()
-                                    }
-                                }
+                                onNavigateBack = { navController.popBackStack() }
                             )
                         }
                         composable("inventory") {

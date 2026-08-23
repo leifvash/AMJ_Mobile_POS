@@ -29,6 +29,7 @@ class ViewModelFactory(
                     container.transactionRepository,
                     container.utangRepository,
                     container.productRepository,
+                    container.categoryRepository,
                     container.printerRepository,
                     container.authRepository
                 ) as T
@@ -48,6 +49,7 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(ProductDetailViewModel::class.java) -> {
                 ProductDetailViewModel(
                     container.productRepository,
+                    container.authRepository,
                     entityId ?: throw IllegalArgumentException("ID required")
                 ) as T
             }
@@ -55,7 +57,10 @@ class ViewModelFactory(
                 AnalyticsViewModel(container.transactionRepository) as T
             }
             modelClass.isAssignableFrom(TransactionHistoryViewModel::class.java) -> {
-                TransactionHistoryViewModel(container.transactionRepository) as T
+                TransactionHistoryViewModel(
+                    container.transactionRepository,
+                    container.authRepository
+                ) as T
             }
             modelClass.isAssignableFrom(InventoryViewModel::class.java) -> {
                 InventoryViewModel(
@@ -64,7 +69,13 @@ class ViewModelFactory(
                 ) as T
             }
             modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
-                SettingsViewModel(container.context, container.authRepository) as T
+                SettingsViewModel(
+                    container.context, 
+                    container.authRepository,
+                    container.productRepository,
+                    container.categoryRepository,
+                    container.transactionRepository
+                ) as T
             }
             modelClass.isAssignableFrom(PrinterSettingsViewModel::class.java) -> {
                 PrinterSettingsViewModel(container.printerRepository) as T
@@ -75,6 +86,7 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(AddProductViewModel::class.java) -> {
                 AddProductViewModel(
                     container.productRepository,
+                    container.categoryRepository,
                     container.barcodeScanner
                 ) as T
             }

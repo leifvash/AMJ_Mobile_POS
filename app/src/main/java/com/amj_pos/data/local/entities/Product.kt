@@ -13,22 +13,15 @@ data class Product(
     val barcode: String?,
     val name: String,
     
-    // Cost calculation (Bulk)
-    val bulkCostPrice: Double, // Price paid to supplier for the bulk unit (e.g., box)
-    val piecesPerBulk: Int,    // How many individual items are in one bulk unit
-    
-    // Retail calculation (Piece)
-    val pieceRetailPrice: Double, // Selling price per individual piece
+    // Wholesale Logic
+    val unitName: String = "Case", // e.g., "Case", "Pack", "Box"
+    val piecesPerUnit: Int = 1,    // e.g., 12 pieces in a case
+    val unitPrice: Double,         // Price for the whole unit
     
     // Inventory
-    val currentStockInPieces: Int, // Total remaining pieces in stock
+    val currentStock: Double, // Total remaining units (e.g. 5.5 Cases)
     
+    val category: String = "Uncategorized",
+    val isArchived: Boolean = false,
     val updatedAt: Long = System.currentTimeMillis()
-) {
-    /**
-     * Calculates the cost price per individual piece.
-     * This is used to calculate "Kita" (Net Profit) per sale.
-     */
-    val costPricePerPiece: Double
-        get() = if (piecesPerBulk > 0) bulkCostPrice / piecesPerBulk else 0.0
-}
+)

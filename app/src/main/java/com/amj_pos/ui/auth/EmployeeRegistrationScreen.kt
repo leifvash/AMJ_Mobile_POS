@@ -65,26 +65,59 @@ fun EmployeeRegistrationScreen(
             )
 
             OutlinedTextField(
-                value = uiState.email,
-                onValueChange = viewModel::onEmailChange,
-                label = { Text("Email Address") },
+                value = uiState.username,
+                onValueChange = viewModel::onUsernameChange,
+                label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = uiState.password,
                 onValueChange = viewModel::onPasswordChange,
-                label = { Text("Temporary Password") },
+                label = { Text("Password") },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
-                value = uiState.branchId,
-                onValueChange = viewModel::onBranchChange,
-                label = { Text("Assign Branch ID") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Text("Assign Branch", style = MaterialTheme.typography.labelLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.onBranchChange("Mambuaya") },
+                    modifier = Modifier.weight(1f),
+                    colors = if (uiState.branchId == "Mambuaya") 
+                        ButtonDefaults.buttonColors() 
+                    else 
+                        ButtonDefaults.outlinedButtonColors(),
+                    border = if (uiState.branchId != "Mambuaya") 
+                        androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) 
+                    else null
+                ) {
+                    Text("Mambuaya", color = if (uiState.branchId == "Mambuaya") 
+                        MaterialTheme.colorScheme.onPrimary 
+                    else 
+                        MaterialTheme.colorScheme.primary)
+                }
+                
+                Button(
+                    onClick = { viewModel.onBranchChange("Bayanga") },
+                    modifier = Modifier.weight(1f),
+                    colors = if (uiState.branchId == "Bayanga") 
+                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary) 
+                    else 
+                        ButtonDefaults.outlinedButtonColors(),
+                    border = if (uiState.branchId != "Bayanga") 
+                        androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary) 
+                    else null
+                ) {
+                    Text("Bayanga", color = if (uiState.branchId == "Bayanga") 
+                        MaterialTheme.colorScheme.onSecondary 
+                    else 
+                        MaterialTheme.colorScheme.secondary)
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

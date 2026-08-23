@@ -5,8 +5,10 @@ import kotlinx.coroutines.flow.Flow
 
 interface AuthRepository {
     val currentUser: Flow<User?>
-    suspend fun login(email: String, pass: String): Result<User>
+    val selectedBranch: Flow<String?>
+    fun setSelectedBranch(branch: String?)
+    suspend fun login(username: String, pass: String): Result<User>
     suspend fun logout()
     suspend fun fetchUserDetails(uid: String): User?
-    suspend fun registerEmployee(name: String, email: String, pass: String, branchId: String): Result<Unit>
+    suspend fun registerEmployee(name: String, username: String, pass: String, branchId: String): Result<Unit>
 }

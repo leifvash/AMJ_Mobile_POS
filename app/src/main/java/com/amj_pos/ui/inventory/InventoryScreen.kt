@@ -82,7 +82,7 @@ fun InventoryScreen(
                     items(uiState.products, key = { it.id }) { product ->
                         ProductItem(
                             product = product,
-                            onDelete = { if (userRole == "owner") viewModel.deleteProduct(product) },
+                            onDelete = { if (userRole == "owner") viewModel.archiveProduct(product.id) },
                             onClick = { if (userRole == "owner") onNavigateToProductDetail(product.id) },
                             userRole = userRole
                         )
@@ -114,8 +114,9 @@ fun ProductItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Stock: ${product.currentStockInPieces} pieces", style = MaterialTheme.typography.bodyMedium)
-                Text("Price: P${product.pieceRetailPrice}", style = MaterialTheme.typography.bodySmall)
+                Text("Category: ${product.category}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                Text("Stock: ${product.currentStock} ${product.unitName}s", style = MaterialTheme.typography.bodyMedium)
+                Text("Price: P${product.unitPrice} per ${product.unitName}", style = MaterialTheme.typography.bodySmall)
             }
             if (userRole == "owner") {
                 IconButton(onClick = onDelete) {

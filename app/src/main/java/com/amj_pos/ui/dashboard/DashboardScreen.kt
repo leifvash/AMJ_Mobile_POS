@@ -20,6 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -99,8 +102,8 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SummaryCard(
-                    label = "Kada-araw na Kita",
-                    amount = uiState.dailyProfit,
+                    label = "Today's Sales",
+                    amount = uiState.dailySales,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier
@@ -108,7 +111,7 @@ fun DashboardScreen(
                         .clickable { onNavigateToAnalytics() }
                 )
                 SummaryCard(
-                    label = "Total na Utang",
+                    label = "Total Utang",
                     amount = uiState.totalUtang,
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -140,6 +143,8 @@ fun DashboardScreen(
 
 @Composable
 fun LowStockAlertSection(products: List<com.amj_pos.data.local.entities.Product>, onAction: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
@@ -151,14 +156,29 @@ fun LowStockAlertSection(products: List<com.amj_pos.data.local.entities.Product>
                 Text("Restock Needed!", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            products.take(3).forEach { product ->
-                Text("• ${product.name} (${product.currentStockInPieces} pieces left)", style = MaterialTheme.typography.bodySmall)
+            
+            val displayList = if (expanded) products else products.take(2)
+            
+            displayList.forEach { product ->
+                Text("• ${product.name} (${product.currentStock} ${product.unitName}s left)", style = MaterialTheme.typography.bodySmall)
             }
-            if (products.size > 3) {
-                Text("...and ${products.size - 3} more", style = MaterialTheme.typography.bodySmall)
-            }
-            TextButton(onClick = onAction, modifier = Modifier.align(Alignment.End)) {
-                Text("Fix Now")
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (products.size > 2) {
+                    TextButton(onClick = { expanded = !expanded }) {
+                        Text(if (expanded) "View Less" else "View More (${products.size - 2})")
+                    }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+                
+                TextButton(onClick = onAction) {
+                    Text("Fix Now")
+                }
             }
         }
     }

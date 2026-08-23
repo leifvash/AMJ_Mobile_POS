@@ -171,6 +171,16 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
         }
     }
 
+    private fun formatQuantity(qty: Double): String {
+        val whole = qty.toInt()
+        val fraction = qty - whole
+        return when {
+            fraction == 0.0 -> whole.toString()
+            fraction == 0.5 -> if (whole == 0) "1/2" else "$whole and 1/2"
+            else -> String.format(Locale.getDefault(), "%.1f", qty)
+        }
+    }
+
     override suspend fun printReceipt(transaction: Transaction, items: List<TransactionItem>, cashierName: String?): Boolean {
         if (_connectionState.value != PrinterStatus.CONNECTED) {
             connect()
@@ -193,10 +203,21 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
                 os.write(boldOn)
                 os.write("AMJ SARI-SARI STORE\n".toByteArray())
                 os.write(boldOff)
-                os.write("NHA Graceville, Mambuaya,\n".toByteArray())
-                os.write("Cagayan de Oro City\n".toByteArray())
                 
-                val sdf = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+                // Dynamic Branch Address
+                when (transaction.branchName) {
+                    "Bayanga" -> {
+                        os.write("Bayanga, Cagayan de Oro City\n".toByteArray())
+                    }
+                    else -> {
+                        // Default to Mambuaya
+                        os.write("NHA Graceville, Mambuaya,\n".toByteArray())
+                        os.write("Cagayan de Oro City\n".toByteArray())
+                    }
+                }
+                
+                // 12-hour AM/PM format
+                val sdf = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault())
                 os.write("${sdf.format(Date(transaction.timestamp))}\n".toByteArray())
                 
                 cashierName?.let {
@@ -208,9 +229,10 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
                 os.write(left)
                 items.forEach { item ->
                     os.write("${item.productName.take(32)}\n".toByteArray())
-                    val qtyPrice = "${item.quantity} x P${item.sellPricePerPiece}"
-                    val subtotal = "P${item.sellPricePerPiece * item.quantity}"
-                    os.write("${formatLine(qtyPrice, subtotal)}\n".toByteArray())
+                    val qtyStr = formatQuantity(item.quantity)
+                    val leftText = "$qtyStr ${item.unitName}"
+                    val rightText = "P${item.sellPrice}"
+                    os.write("${formatLine(leftText, rightText)}\n".toByteArray())
                 }
                 
                 os.write("--------------------------------\n".toByteArray())

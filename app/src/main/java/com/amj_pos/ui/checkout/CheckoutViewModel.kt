@@ -19,7 +19,6 @@ import kotlinx.coroutines.launch
 data class CheckoutUiState(
     val items: List<TransactionItem> = emptyList(),
     val totalAmount: Double = 0.0,
-    val totalProfit: Double = 0.0,
     val isScanning: Boolean = false,
     val paymentMethod: PaymentMethod = PaymentMethod.CASH,
     val customers: List<Customer> = emptyList(),
@@ -44,11 +43,18 @@ class CheckoutViewModel(
     val manualSearchQuery: StateFlow<String> = _manualSearchQuery
 
     private var currentUserName: String? = null
+    private var selectedBranch: String = ""
 
     init {
         viewModelScope.launch {
             authRepository.currentUser.collect { user ->
                 currentUserName = user?.name
+            }
+        }
+
+        viewModelScope.launch {
+            authRepository.selectedBranch.collect { branch ->
+                selectedBranch = branch ?: ""
             }
         }
         
@@ -106,21 +112,20 @@ class CheckoutViewModel(
     }
 
     fun addItemToCart(product: Product) {
-        val existingItem = _uiState.value.items.find { it.productId == product.id }
-        val currentQtyInCart = existingItem?.quantity ?: 0
+        val existingItem = _uiState.value.items.find { it.productId == product.id && it.unitType == "Whole" }
+        val currentQtyInCart = _uiState.value.items.filter { it.productId == product.id }.sumOf { it.quantity }
         
-        if (product.currentStockInPieces <= currentQtyInCart) {
+        if (product.currentStock < (currentQtyInCart + 1.0)) {
             _uiState.update { it.copy(error = "Out of stock: ${product.name}") }
             return
         }
 
         val updatedItems = if (existingItem != null) {
             _uiState.value.items.map {
-                if (it.productId == product.id) {
-                    val newQty = it.quantity + 1
+                if (it.productId == product.id && it.unitType == "Whole") {
                     it.copy(
-                        quantity = newQty,
-                        profit = (it.sellPricePerPiece - it.costPricePerPiece) * newQty
+                        quantity = it.quantity + 1.0,
+                        sellPrice = it.sellPrice + product.unitPrice
                     )
                 } else it
             }
@@ -129,41 +134,84 @@ class CheckoutViewModel(
                 transactionId = 0,
                 productId = product.id,
                 productName = product.name,
-                quantity = 1,
-                sellPricePerPiece = product.pieceRetailPrice,
-                costPricePerPiece = product.costPricePerPiece,
-                profit = product.pieceRetailPrice - product.costPricePerPiece
+                quantity = 1.0,
+                sellPrice = product.unitPrice,
+                unitType = "Whole",
+                unitName = product.unitName
             )
         }
         
         updateTotals(updatedItems)
     }
 
-    fun removeItemFromCart(productId: Long) {
-        val updatedItems = _uiState.value.items.filter { it.productId != productId }
+    fun toggleUnit(productId: Long, currentUnit: String) {
+        viewModelScope.launch {
+            val product = productRepository.getProductById(productId) ?: return@launch
+
+            val items = _uiState.value.items.toMutableList()
+            val index = items.indexOfFirst { it.productId == productId && it.unitType == currentUnit }
+            if (index == -1) return@launch
+
+            val nextUnit = if (currentUnit == "Whole") "Half" else "Whole"
+
+            val unitCountPerItem = if (nextUnit == "Half") 0.5 else 1.0
+            val unitPrice = if (nextUnit == "Half") product.unitPrice / 2.0 else product.unitPrice
+            
+            // Calculate how many items are in this line
+            val itemCount = if (currentUnit == "Half") {
+                (items[index].quantity / 0.5).toInt()
+            } else {
+                items[index].quantity.toInt()
+            }
+
+            val newTotalQuantity = itemCount * unitCountPerItem
+            val newTotalSellPrice = itemCount * unitPrice
+
+            // Check stock
+            val otherItemsQty = items.filterIndexed { i, item -> i != index && item.productId == productId }.sumOf { it.quantity }
+            if (product.currentStock < (otherItemsQty + newTotalQuantity)) {
+                _uiState.update { it.copy(error = "Not enough stock for $nextUnit unit") }
+                return@launch
+            }
+
+            items[index] = items[index].copy(
+                unitType = nextUnit,
+                quantity = newTotalQuantity,
+                sellPrice = newTotalSellPrice
+            )
+            updateTotals(items)
+        }
+    }
+
+    fun removeItemFromCart(productId: Long, unitType: String) {
+        val updatedItems = _uiState.value.items.filterNot { it.productId == productId && it.unitType == unitType }
         updateTotals(updatedItems)
     }
 
-    fun updateQuantity(productId: Long, delta: Int) {
+    fun updateQuantity(productId: Long, unitType: String, delta: Int) {
         viewModelScope.launch {
             val product = productRepository.getProductById(productId) ?: return@launch
             val items = _uiState.value.items.toMutableList()
-            val index = items.indexOfFirst { it.productId == productId }
+            val index = items.indexOfFirst { it.productId == productId && it.unitType == unitType }
             
             if (index != -1) {
                 val currentItem = items[index]
-                val newQty = currentItem.quantity + delta
+                
+                val perUnitQty = if (unitType == "Half") 0.5 else 1.0
+                val perUnitPrice = if (unitType == "Half") product.unitPrice / 2.0 else product.unitPrice
+                
+                val newQty = currentItem.quantity + (delta * perUnitQty)
+                val newPrice = currentItem.sellPrice + (delta * perUnitPrice)
                 
                 if (newQty <= 0) {
                     items.removeAt(index)
-                } else if (newQty > product.currentStockInPieces) {
-                    _uiState.update { it.copy(error = "Only ${product.currentStockInPieces} pieces left in stock.") }
-                    return@launch
                 } else {
-                    items[index] = currentItem.copy(
-                        quantity = newQty,
-                        profit = (currentItem.sellPricePerPiece - currentItem.costPricePerPiece) * newQty
-                    )
+                    val otherItemsQty = items.filterIndexed { i, item -> i != index && item.productId == productId }.sumOf { it.quantity }
+                    if (newQty + otherItemsQty > product.currentStock) {
+                        _uiState.update { it.copy(error = "Only ${product.currentStock} ${product.unitName}s left in stock.") }
+                        return@launch
+                    }
+                    items[index] = currentItem.copy(quantity = newQty, sellPrice = newPrice)
                 }
                 updateTotals(items)
             }
@@ -171,9 +219,8 @@ class CheckoutViewModel(
     }
 
     fun updateTotals(items: List<TransactionItem>) {
-        val total = items.sumOf { it.sellPricePerPiece * it.quantity }
-        val profit = items.sumOf { it.profit }
-        _uiState.update { it.copy(items = items, totalAmount = total, totalProfit = profit) }
+        val total = items.sumOf { it.sellPrice }
+        _uiState.update { it.copy(items = items, totalAmount = total) }
     }
 
     fun clearError() {
@@ -203,10 +250,10 @@ class CheckoutViewModel(
 
             val transaction = Transaction(
                 totalAmount = state.totalAmount,
-                totalProfit = state.totalProfit,
                 isUtang = isUtang,
                 customerId = customerId,
-                paymentMethod = state.paymentMethod
+                paymentMethod = state.paymentMethod,
+                branchName = selectedBranch
             )
             
             try {

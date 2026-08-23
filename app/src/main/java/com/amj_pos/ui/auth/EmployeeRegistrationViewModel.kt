@@ -10,9 +10,9 @@ import kotlinx.coroutines.launch
 
 data class RegistrationUiState(
     val name: String = "",
-    val email: String = "",
+    val username: String = "",
     val password: String = "",
-    val branchId: String = "BRANCH_001",
+    val branchId: String = "Mambuaya",
     val isLoading: Boolean = false,
     val success: Boolean = false,
     val error: String? = null
@@ -26,14 +26,14 @@ class EmployeeRegistrationViewModel(
     val uiState: StateFlow<RegistrationUiState> = _uiState
 
     fun onNameChange(value: String) = _uiState.update { it.copy(name = value) }
-    fun onEmailChange(value: String) = _uiState.update { it.copy(email = value) }
+    fun onUsernameChange(value: String) = _uiState.update { it.copy(username = value) }
     fun onPasswordChange(value: String) = _uiState.update { it.copy(password = value) }
     fun onBranchChange(value: String) = _uiState.update { it.copy(branchId = value) }
     fun onMessageShown() = _uiState.update { it.copy(error = null) }
 
     fun register() {
         val state = _uiState.value
-        if (state.name.isBlank() || state.email.isBlank() || state.password.isBlank()) {
+        if (state.name.isBlank() || state.username.isBlank() || state.password.isBlank()) {
             _uiState.update { it.copy(error = "All fields are required") }
             return
         }
@@ -41,7 +41,7 @@ class EmployeeRegistrationViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             val result = authRepository.registerEmployee(
-                state.name, state.email, state.password, state.branchId
+                state.name, state.username, state.password, state.branchId
             )
             result.onSuccess {
                 _uiState.update { it.copy(isLoading = false, success = true) }
@@ -51,5 +51,5 @@ class EmployeeRegistrationViewModel(
         }
     }
     
-    fun resetSuccess() = _uiState.update { it.copy(success = false, name = "", email = "", password = "") }
+    fun resetSuccess() = _uiState.update { it.copy(success = false, name = "", username = "", password = "") }
 }

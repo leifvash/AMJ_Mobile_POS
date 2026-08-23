@@ -7,6 +7,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
@@ -14,6 +16,13 @@ class FirebaseAuthRepositoryImpl(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore
 ) : AuthRepository {
+
+    private val _selectedBranch = MutableStateFlow<String?>(null)
+    override val selectedBranch: Flow<String?> = _selectedBranch.asStateFlow()
+
+    override fun setSelectedBranch(branch: String?) {
+        _selectedBranch.value = branch
+    }
 
     override val currentUser: Flow<User?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
@@ -37,8 +46,9 @@ class FirebaseAuthRepositoryImpl(
         awaitClose { auth.removeAuthStateListener(listener) }
     }
 
-    override suspend fun login(email: String, pass: String): Result<User> {
+    override suspend fun login(username: String, pass: String): Result<User> {
         return try {
+            val email = if (username.contains("@")) username else "$username@amjpos.com"
             val result = auth.signInWithEmailAndPassword(email, pass).await()
             val uid = result.user?.uid ?: throw Exception("Login failed")
             val user = fetchUserDetails(uid) ?: throw Exception("User data not found")
@@ -50,6 +60,7 @@ class FirebaseAuthRepositoryImpl(
 
     override suspend fun logout() {
         auth.signOut()
+        _selectedBranch.value = null
     }
 
     override suspend fun fetchUserDetails(uid: String): User? {
@@ -61,8 +72,9 @@ class FirebaseAuthRepositoryImpl(
         }
     }
 
-    override suspend fun registerEmployee(name: String, email: String, pass: String, branchId: String): Result<Unit> {
+    override suspend fun registerEmployee(name: String, username: String, pass: String, branchId: String): Result<Unit> {
         return try {
+            val email = if (username.contains("@")) username else "$username@amjpos.com"
             // Use a secondary Firebase app to register the employee without logging out the owner
             val defaultApp = FirebaseApp.getInstance()
             val secondaryAppName = "SecondaryApp"

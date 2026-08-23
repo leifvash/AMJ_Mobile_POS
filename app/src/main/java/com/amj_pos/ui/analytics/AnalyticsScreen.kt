@@ -54,18 +54,41 @@ fun AnalyticsScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Text("Daily Profit (Last 7 Days)", style = MaterialTheme.typography.titleMedium)
+                Text("Daily Sales (Last 7 Days)", style = MaterialTheme.typography.titleMedium)
                 
-                ProfitBarChart(
+                SalesBarChart(
                     stats = uiState.dailyStats,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(250.dp)
+                        .height(200.dp)
                 )
 
-                Divider()
+                HorizontalDivider()
 
-                Text("Sales Summary", style = MaterialTheme.typography.titleMedium)
+                Text("Branch Performance", style = MaterialTheme.typography.titleMedium)
+                uiState.branchPerformance.forEach { performance ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(performance.branchName)
+                        Text("₱${performance.totalSales}", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                HorizontalDivider()
+
+                Text("Top 5 Selling Products", style = MaterialTheme.typography.titleMedium)
+                uiState.topProducts.forEach { item ->
+                    ListItem(
+                        headlineContent = { Text(item.productName) },
+                        supportingContent = { Text("${item.quantity} ${item.unitName}s sold") }
+                    )
+                }
+
+                HorizontalDivider()
+
+                Text("Daily Summary", style = MaterialTheme.typography.titleMedium)
                 
                 uiState.dailyStats.reversed().forEach { stat ->
                     DailyStatRow(stat)
@@ -76,9 +99,8 @@ fun AnalyticsScreen(
 }
 
 @Composable
-fun ProfitBarChart(stats: List<DailyStat>, modifier: Modifier = Modifier) {
+fun SalesBarChart(stats: List<DailyStat>, modifier: Modifier = Modifier) {
     val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
     
     if (stats.isEmpty()) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -87,7 +109,7 @@ fun ProfitBarChart(stats: List<DailyStat>, modifier: Modifier = Modifier) {
         return
     }
 
-    val maxProfit = stats.maxOf { it.totalProfit }.coerceAtLeast(100.0)
+    val maxSales = stats.maxOf { it.totalSales }.coerceAtLeast(100.0)
 
     Canvas(modifier = modifier.padding(bottom = 24.dp)) {
         val width = size.width
@@ -96,12 +118,12 @@ fun ProfitBarChart(stats: List<DailyStat>, modifier: Modifier = Modifier) {
         val spacing = barWidth * 0.5f
 
         stats.forEachIndexed { index, stat ->
-            val barHeight = (stat.totalProfit / maxProfit).toFloat() * height
+            val barHeight = (stat.totalSales / maxSales).toFloat() * height
             val x = index * (barWidth + spacing) + spacing
             
             // Draw Bar
             drawRect(
-                color = if (stat.totalProfit > 0) primaryColor else Color.Gray,
+                color = if (stat.totalSales > 0) primaryColor else Color.Gray,
                 topLeft = Offset(x, height - barHeight),
                 size = Size(barWidth, barHeight)
             )
@@ -129,9 +151,9 @@ fun DailyStatRow(stat: DailyStat) {
         ) {
             Column {
                 Text(stat.date, fontWeight = FontWeight.Bold)
-                Text("Sales: ₱${stat.totalSales}", style = MaterialTheme.typography.bodySmall)
+                Text("Total Today:", style = MaterialTheme.typography.labelSmall)
             }
-            Text("Kita: ₱${stat.totalProfit}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+            Text("₱${stat.totalSales}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
         }
     }
 }
