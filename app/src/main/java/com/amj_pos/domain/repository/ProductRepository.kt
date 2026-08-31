@@ -5,9 +5,9 @@ import com.amj_pos.data.local.entities.StockAdjustment
 import kotlinx.coroutines.flow.Flow
 
 interface ProductRepository {
-    fun getAllProducts(): Flow<List<Product>>
-    fun getLowStockProducts(threshold: Int): Flow<List<Product>>
-    fun searchProducts(query: String): Flow<List<Product>>
+    fun getAllProducts(branchName: String = ""): Flow<List<Product>>
+    fun getLowStockProducts(threshold: Int, branchName: String = ""): Flow<List<Product>>
+    fun searchProducts(query: String, branchName: String = ""): Flow<List<Product>>
     suspend fun getProductByBarcode(barcode: String): Product?
     suspend fun getProductById(id: Long): Product?
     suspend fun upsertProduct(product: Product)

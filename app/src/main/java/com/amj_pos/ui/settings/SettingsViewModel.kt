@@ -19,8 +19,11 @@ data class SettingsUiState(
     val storeName: String = "",
     val storeAddress: String = "",
     val lowStockThreshold: String = "5",
+    val inactivityTimeout: String = "0", // 0 means disabled
+    val inventoryPassword: String = "",
     val lastBackupDate: String = "Never",
     val isSyncing: Boolean = false,
+    val userRole: String = "employee",
     val syncMessage: String? = null
 )
 
@@ -41,8 +44,28 @@ class SettingsViewModel(
             storeName = sharedPrefs.getString("store_name", "AMJ SARI-SARI STORE") ?: "AMJ SARI-SARI STORE",
             storeAddress = sharedPrefs.getString("store_address", "NHA Graceville, Mambuaya, Cagayan de Oro City") ?: "",
             lowStockThreshold = sharedPrefs.getInt("low_stock_threshold", 5).toString(),
+            inactivityTimeout = sharedPrefs.getInt("inactivity_timeout", 0).toString(),
             lastBackupDate = sharedPrefs.getString("last_sync_date", "Never") ?: "Never"
         ) }
+
+        viewModelScope.launch {
+            authRepository.currentUser.collect { user ->
+                _uiState.update { it.copy(userRole = user?.role?.lowercase() ?: "employee") }
+            }
+        }
+
+        viewModelScope.launch {
+            authRepository.getInventoryPassword().collect { password ->
+                _uiState.update { it.copy(inventoryPassword = password) }
+            }
+        }
+    }
+
+    fun onInventoryPasswordChange(password: String) {
+        _uiState.update { it.copy(inventoryPassword = password) }
+        viewModelScope.launch {
+            authRepository.setInventoryPassword(password)
+        }
     }
 
     fun syncData() {
@@ -85,6 +108,13 @@ class SettingsViewModel(
         _uiState.update { it.copy(lowStockThreshold = value) }
         value.toIntOrNull()?.let {
             sharedPrefs.edit().putInt("low_stock_threshold", it).apply()
+        }
+    }
+
+    fun onTimeoutChange(value: String) {
+        _uiState.update { it.copy(inactivityTimeout = value) }
+        value.toIntOrNull()?.let {
+            sharedPrefs.edit().putInt("inactivity_timeout", it).apply()
         }
     }
 

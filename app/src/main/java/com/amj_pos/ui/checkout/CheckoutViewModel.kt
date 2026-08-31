@@ -66,11 +66,13 @@ class CheckoutViewModel(
 
         @OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
         viewModelScope.launch {
-            _manualSearchQuery
+            combine(_manualSearchQuery, authRepository.selectedBranch) { query, branch ->
+                query to (branch ?: "")
+            }
                 .debounce(300)
-                .flatMapLatest { query ->
+                .flatMapLatest { (query, branch) ->
                     if (query.isBlank()) flowOf(emptyList())
-                    else productRepository.searchProducts(query)
+                    else productRepository.searchProducts(branchName = branch, query = query)
                 }
                 .collect { products ->
                     _uiState.update { it.copy(searchProducts = products) }

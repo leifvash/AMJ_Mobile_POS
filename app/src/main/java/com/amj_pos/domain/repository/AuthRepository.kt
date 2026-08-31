@@ -7,6 +7,8 @@ interface AuthRepository {
     val currentUser: Flow<User?>
     val selectedBranch: Flow<String?>
     fun setSelectedBranch(branch: String?)
+    fun getInventoryPassword(): Flow<String>
+    suspend fun setInventoryPassword(password: String)
     suspend fun login(username: String, pass: String): Result<User>
     suspend fun logout()
     suspend fun fetchUserDetails(uid: String): User?

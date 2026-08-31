@@ -20,11 +20,11 @@ class ProductRepositoryImpl(
     private val productDao = database.productDao()
     private val stockAdjustmentDao = database.stockAdjustmentDao()
 
-    override fun getAllProducts(): Flow<List<Product>> = productDao.getAllProducts()
+    override fun getAllProducts(branchName: String): Flow<List<Product>> = productDao.getAllProducts(branchName)
     
-    override fun getLowStockProducts(threshold: Int): Flow<List<Product>> = productDao.getLowStockProducts(threshold)
+    override fun getLowStockProducts(threshold: Int, branchName: String): Flow<List<Product>> = productDao.getLowStockProducts(branchName, threshold)
 
-    override fun searchProducts(query: String): Flow<List<Product>> = productDao.searchProducts(query)
+    override fun searchProducts(query: String, branchName: String): Flow<List<Product>> = productDao.searchProducts(branchName, query)
 
     override suspend fun getProductByBarcode(barcode: String): Product? = 
         productDao.getProductByBarcode(barcode)

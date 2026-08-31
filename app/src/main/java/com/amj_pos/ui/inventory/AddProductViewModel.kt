@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.amj_pos.data.local.entities.Category
 import com.amj_pos.data.local.entities.Product
+import com.amj_pos.domain.repository.AuthRepository
 import com.amj_pos.domain.repository.CategoryRepository
 import com.amj_pos.domain.repository.ProductRepository
 import com.amj_pos.domain.scanner.BarcodeScanner
@@ -19,6 +20,7 @@ data class AddProductUiState(
     val unitPrice: String = "",
     val initialStockUnits: String = "0",
     val category: String = "Uncategorized",
+    val branchName: String = "",
     val categories: List<Category> = emptyList(),
     val isScanning: Boolean = false,
     val isSaved: Boolean = false,
@@ -28,6 +30,7 @@ data class AddProductUiState(
 class AddProductViewModel(
     private val productRepository: ProductRepository,
     private val categoryRepository: CategoryRepository,
+    private val authRepository: AuthRepository,
     private val barcodeScanner: BarcodeScanner
 ) : ViewModel() {
 
@@ -38,6 +41,12 @@ class AddProductViewModel(
         viewModelScope.launch {
             categoryRepository.getAllCategories().collect { categories ->
                 _uiState.update { it.copy(categories = categories) }
+            }
+        }
+
+        viewModelScope.launch {
+            authRepository.selectedBranch.collect { branch ->
+                _uiState.update { it.copy(branchName = branch ?: "") }
             }
         }
     }
@@ -96,7 +105,8 @@ class AddProductViewModel(
                     piecesPerUnit = piecesPerUnit,
                     unitPrice = unitPrice,
                     currentStock = state.initialStockUnits.toDoubleOrNull() ?: 0.0,
-                    category = state.category
+                    category = state.category,
+                    branchName = state.branchName
                 )
                 productRepository.upsertProduct(product)
                 _uiState.update { it.copy(isSaved = true) }

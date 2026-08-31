@@ -1,13 +1,16 @@
 package com.amj_pos.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.amj_pos.R
 
 @Composable
 fun LoginScreen(
@@ -26,6 +29,15 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // App Logo
+        Image(
+            painter = painterResource(id = R.drawable.app_logo),
+            contentDescription = "AMJ Logo",
+            modifier = Modifier
+                .size(120.dp)
+                .padding(bottom = 16.dp)
+        )
+
         Text("AMJ POS Login", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(32.dp))
 

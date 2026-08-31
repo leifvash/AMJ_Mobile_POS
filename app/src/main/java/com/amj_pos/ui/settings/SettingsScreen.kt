@@ -1,7 +1,9 @@
 package com.amj_pos.ui.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -44,7 +46,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Store Profile", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -74,6 +77,26 @@ fun SettingsScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            OutlinedTextField(
+                value = uiState.inactivityTimeout,
+                onValueChange = viewModel::onTimeoutChange,
+                label = { Text("Auto-Logout Timeout (Minutes, 0 to disable)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (uiState.userRole == "owner") {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Security", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                OutlinedTextField(
+                    value = uiState.inventoryPassword,
+                    onValueChange = viewModel::onInventoryPasswordChange,
+                    label = { Text("Inventory Edit Password") },
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

@@ -24,6 +24,23 @@ class FirebaseAuthRepositoryImpl(
         _selectedBranch.value = branch
     }
 
+    override fun getInventoryPassword(): Flow<String> = callbackFlow {
+        val listener = firestore.collection("settings").document("inventory")
+            .addSnapshotListener { snapshot, error ->
+                if (snapshot != null && snapshot.exists()) {
+                    trySend(snapshot.getString("password") ?: "")
+                } else {
+                    trySend("")
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    override suspend fun setInventoryPassword(password: String) {
+        firestore.collection("settings").document("inventory")
+            .set(mapOf("password" to password)).await()
+    }
+
     override val currentUser: Flow<User?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser

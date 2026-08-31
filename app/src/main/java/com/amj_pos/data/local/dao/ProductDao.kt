@@ -6,11 +6,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProductDao {
-    @Query("SELECT * FROM products WHERE isArchived = 0 ORDER BY name ASC")
-    fun getAllProducts(): Flow<List<Product>>
+    @Query("SELECT * FROM products WHERE isArchived = 0 AND (:branchName = '' OR branchName = :branchName) ORDER BY name ASC")
+    fun getAllProducts(branchName: String): Flow<List<Product>>
 
-    @Query("SELECT * FROM products WHERE isArchived = 0 AND (name LIKE '%' || :query || '%' OR barcode LIKE '%' || :query || '%') ORDER BY name ASC")
-    fun searchProducts(query: String): Flow<List<Product>>
+    @Query("SELECT * FROM products WHERE isArchived = 0 AND (:branchName = '' OR branchName = :branchName) AND (name LIKE '%' || :query || '%' OR barcode LIKE '%' || :query || '%') ORDER BY name ASC")
+    fun searchProducts(branchName: String, query: String): Flow<List<Product>>
 
     @Query("SELECT * FROM products WHERE barcode = :barcode LIMIT 1")
     suspend fun getProductByBarcode(barcode: String): Product?
@@ -18,8 +18,8 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :id")
     suspend fun getProductById(id: Long): Product?
 
-    @Query("SELECT * FROM products WHERE isArchived = 0 AND currentStock < :threshold ORDER BY currentStock ASC")
-    fun getLowStockProducts(threshold: Int): Flow<List<Product>>
+    @Query("SELECT * FROM products WHERE isArchived = 0 AND (:branchName = '' OR branchName = :branchName) AND currentStock < :threshold ORDER BY currentStock ASC")
+    fun getLowStockProducts(branchName: String, threshold: Int): Flow<List<Product>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProduct(product: Product): Long

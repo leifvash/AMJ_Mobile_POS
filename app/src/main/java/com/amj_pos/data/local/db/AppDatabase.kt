@@ -17,7 +17,7 @@ import com.amj_pos.data.local.entities.*
         Category::class,
         StockAdjustment::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(DataConverters::class)

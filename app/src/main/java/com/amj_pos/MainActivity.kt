@@ -7,11 +7,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -57,126 +59,140 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val authViewModel: AuthViewModel = viewModel(factory = viewModelFactory)
-                    val currentUser by authViewModel.currentUser.collectAsState()
-                    val selectedBranch by authViewModel.selectedBranch.collectAsState()
-
-                    LaunchedEffect(currentUser, selectedBranch) {
-                        if (currentUser == null) {
-                            navController.navigate("login") {
-                                popUpTo(0)
-                            }
-                        } else if (selectedBranch == null) {
-                            navController.navigate("branch_selection") {
-                                popUpTo(0)
-                            }
-                        } else {
-                            navController.navigate("dashboard") {
-                                popUpTo(0)
-                            }
-                        }
-                    }
                     
-                    NavHost(navController = navController, startDestination = "login") {
-                        composable("login") {
-                            LoginScreen(
-                                viewModel = authViewModel,
-                                onLoginSuccess = { /* Managed by LaunchedEffect */ }
-                            )
-                        }
-                        composable("branch_selection") {
-                            BranchSelectionScreen(
-                                viewModel = authViewModel,
-                                onBranchSelected = { /* Managed by LaunchedEffect */ }
-                            )
-                        }
-                        composable("dashboard") {
-                            DashboardScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateToCheckout = { navController.navigate("checkout") },
-                                onNavigateToInventory = { navController.navigate("inventory") },
-                                onNavigateToUtang = { navController.navigate("utang") },
-                                onNavigateToTransactions = { navController.navigate("transactions") },
-                                onNavigateToSettings = { navController.navigate("settings") },
-                                onNavigateToAnalytics = { navController.navigate("analytics") },
-                                onNavigateToPrinterSettings = { navController.navigate("printer_settings") },
-                                onNavigateToRegistration = { navController.navigate("employee_registration") }
-                            )
-                        }
-                        composable("employee_registration") {
-                            EmployeeRegistrationScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable("printer_settings") {
-                            PrinterSettingsScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable("analytics") {
-                            AnalyticsScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable("settings") {
-                            SettingsScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable("transactions") {
-                            TransactionHistoryScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable("checkout") {
-                            CheckoutScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable("inventory") {
-                            InventoryScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() },
-                                onNavigateToAddProduct = { navController.navigate("add_product") },
-                                onNavigateToProductDetail = { id -> navController.navigate("product_detail/$id") },
-                                userRole = currentUser?.role?.lowercase() ?: "employee"
-                            )
-                        }
-                        composable("product_detail/{productId}") { backStackEntry ->
-                            val productId = backStackEntry.arguments?.getString("productId")?.toLongOrNull() ?: 0L
-                            ProductDetailScreen(
-                                viewModel = viewModel(factory = ViewModelFactory(appContainer, productId)),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable("add_product") {
-                            AddProductScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable("utang") {
-                            UtangScreen(
-                                viewModel = viewModel(factory = viewModelFactory),
-                                onNavigateBack = { navController.popBackStack() },
-                                onNavigateToDetail = { id, name -> 
-                                    navController.navigate("customer_detail/$id/$name")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        awaitPointerEvent()
+                                        authViewModel.resetTimeout()
+                                    }
                                 }
-                            )
+                            }
+                    ) {
+                        val currentUser by authViewModel.currentUser.collectAsState()
+                        val selectedBranch by authViewModel.selectedBranch.collectAsState()
+
+                        LaunchedEffect(currentUser, selectedBranch) {
+                            if (currentUser == null) {
+                                navController.navigate("login") {
+                                    popUpTo(0)
+                                }
+                            } else if (selectedBranch == null) {
+                                navController.navigate("branch_selection") {
+                                    popUpTo(0)
+                                }
+                            } else {
+                                navController.navigate("dashboard") {
+                                    popUpTo(0)
+                                }
+                            }
                         }
-                        composable("customer_detail/{customerId}/{customerName}") { backStackEntry ->
-                            val customerId = backStackEntry.arguments?.getString("customerId")?.toLongOrNull() ?: 0L
-                            val customerName = backStackEntry.arguments?.getString("customerName") ?: ""
-                            CustomerDetailScreen(
-                                customerName = customerName,
-                                viewModel = viewModel(factory = ViewModelFactory(appContainer, customerId)),
-                                onNavigateBack = { navController.popBackStack() }
-                            )
+                        
+                        NavHost(navController = navController, startDestination = "login") {
+                            composable("login") {
+                                LoginScreen(
+                                    viewModel = authViewModel,
+                                    onLoginSuccess = { /* Managed by LaunchedEffect */ }
+                                )
+                            }
+                            composable("branch_selection") {
+                                BranchSelectionScreen(
+                                    viewModel = authViewModel,
+                                    onBranchSelected = { /* Managed by LaunchedEffect */ }
+                                )
+                            }
+                            composable("dashboard") {
+                                DashboardScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateToCheckout = { navController.navigate("checkout") },
+                                    onNavigateToInventory = { navController.navigate("inventory") },
+                                    onNavigateToUtang = { navController.navigate("utang") },
+                                    onNavigateToTransactions = { navController.navigate("transactions") },
+                                    onNavigateToSettings = { navController.navigate("settings") },
+                                    onNavigateToAnalytics = { navController.navigate("analytics") },
+                                    onNavigateToPrinterSettings = { navController.navigate("printer_settings") },
+                                    onNavigateToRegistration = { navController.navigate("employee_registration") }
+                                )
+                            }
+                            composable("employee_registration") {
+                                EmployeeRegistrationScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("printer_settings") {
+                                PrinterSettingsScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("analytics") {
+                                AnalyticsScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("settings") {
+                                SettingsScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("transactions") {
+                                TransactionHistoryScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("checkout") {
+                                CheckoutScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("inventory") {
+                                InventoryScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onNavigateToAddProduct = { navController.navigate("add_product") },
+                                    onNavigateToProductDetail = { id -> navController.navigate("product_detail/$id") },
+                                    userRole = currentUser?.role?.lowercase() ?: "employee"
+                                )
+                            }
+                            composable("product_detail/{productId}") { backStackEntry ->
+                                val productId = backStackEntry.arguments?.getString("productId")?.toLongOrNull() ?: 0L
+                                ProductDetailScreen(
+                                    viewModel = viewModel(factory = ViewModelFactory(appContainer, productId)),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("add_product") {
+                                AddProductScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("utang") {
+                                UtangScreen(
+                                    viewModel = viewModel(factory = viewModelFactory),
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onNavigateToDetail = { id, name -> 
+                                        navController.navigate("customer_detail/$id/$name")
+                                    }
+                                )
+                            }
+                            composable("customer_detail/{customerId}/{customerName}") { backStackEntry ->
+                                val customerId = backStackEntry.arguments?.getString("customerId")?.toLongOrNull() ?: 0L
+                                val customerName = backStackEntry.arguments?.getString("customerName") ?: ""
+                                CustomerDetailScreen(
+                                    customerName = customerName,
+                                    viewModel = viewModel(factory = ViewModelFactory(appContainer, customerId)),
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
                         }
                     }
                 }

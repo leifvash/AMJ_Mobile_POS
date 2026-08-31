@@ -35,7 +35,7 @@ class ViewModelFactory(
                 ) as T
             }
             modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
-                AuthViewModel(container.authRepository) as T
+                AuthViewModel(container.context, container.authRepository) as T
             }
             modelClass.isAssignableFrom(EmployeeRegistrationViewModel::class.java) -> {
                 EmployeeRegistrationViewModel(container.authRepository) as T
@@ -65,6 +65,7 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(InventoryViewModel::class.java) -> {
                 InventoryViewModel(
                     container.productRepository,
+                    container.authRepository,
                     container.barcodeScanner
                 ) as T
             }
@@ -87,6 +88,7 @@ class ViewModelFactory(
                 AddProductViewModel(
                     container.productRepository,
                     container.categoryRepository,
+                    container.authRepository,
                     container.barcodeScanner
                 ) as T
             }

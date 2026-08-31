@@ -22,6 +22,7 @@ data class Product(
     val currentStock: Double, // Total remaining units (e.g. 5.5 Cases)
     
     val category: String = "Uncategorized",
+    val branchName: String = "", // Mambuaya or Bayanga
     val isArchived: Boolean = false,
     val updatedAt: Long = System.currentTimeMillis()
 )
