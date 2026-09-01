@@ -3,6 +3,7 @@ package com.amj_pos.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.amj_pos.data.local.entities.Product
+import com.amj_pos.data.local.entities.PaymentMethod
 import com.amj_pos.domain.model.User
 import com.amj_pos.domain.printer.PrinterRepository
 import com.amj_pos.domain.printer.PrinterStatus
@@ -21,11 +22,15 @@ import kotlinx.coroutines.launch
 
 data class DashboardUiState(
     val dailySales: Double = 0.0,
+    val cashSales: Double = 0.0,
+    val gcashSales: Double = 0.0,
+    val dailyUtangSales: Double = 0.0,
     val totalUtang: Double = 0.0,
     val lowStockProducts: List<Product> = emptyList(),
     val printerStatus: PrinterStatus = PrinterStatus.DISCONNECTED,
     val userRole: String = "employee",
     val userName: String = "",
+    val selectedBranch: String = "",
     val isLoading: Boolean = true
 )
 
@@ -50,22 +55,32 @@ class DashboardViewModel(
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DashboardUiState> = combine(
         authRepository.currentUser,
+        authRepository.selectedBranch,
         printerRepository.connectionState,
-        productRepository.getLowStockProducts(threshold = 5),
         utangRepository.getTotalOutstandingUtang()
-    ) { user, printer, lowStock, utang ->
-        DashboardParams(user, printer, lowStock, utang)
+    ) { user, branch, printer, utang ->
+        DashboardParams(user, branch, printer, utang)
     }.flatMapLatest { params ->
-        val branch = if (params.user?.role?.lowercase() == "employee") params.user.assigned_branch else ""
-
-        transactionRepository.getDailySales(branch).map { sales ->
+        val branch = params.branch ?: ""
+        
+        combine(
+            productRepository.getLowStockProducts(threshold = 5, branchName = branch),
+            transactionRepository.getDailySales(branch),
+            transactionRepository.getDailySalesByMethods(branch, listOf(PaymentMethod.CASH)),
+            transactionRepository.getDailySalesByMethods(branch, listOf(PaymentMethod.QRPH)),
+            transactionRepository.getDailySalesByMethods(branch, listOf(PaymentMethod.UTANG))
+        ) { lowStock, sales, cash, gcash, utangSales ->
             DashboardUiState(
                 dailySales = sales,
+                cashSales = cash,
+                gcashSales = gcash,
+                dailyUtangSales = utangSales,
                 totalUtang = params.utang,
-                lowStockProducts = params.lowStock,
+                lowStockProducts = lowStock,
                 printerStatus = params.printer,
                 userRole = params.user?.role?.lowercase() ?: "employee",
                 userName = params.user?.name ?: "",
+                selectedBranch = branch,
                 isLoading = false
             )
         }
@@ -77,10 +92,14 @@ class DashboardViewModel(
 
     private data class DashboardParams(
         val user: User?,
+        val branch: String?,
         val printer: PrinterStatus,
-        val lowStock: List<Product>,
         val utang: Double
     )
+
+    fun switchBranch(branch: String) {
+        authRepository.setSelectedBranch(branch)
+    }
 
     fun connectPrinter() {
         viewModelScope.launch(Dispatchers.IO) {

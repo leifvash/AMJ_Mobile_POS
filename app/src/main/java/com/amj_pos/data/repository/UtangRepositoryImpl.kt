@@ -14,6 +14,9 @@ class UtangRepositoryImpl(private val utangDao: UtangDao) : UtangRepository {
 
     override fun getCustomers(): Flow<List<Customer>> = utangDao.getAllCustomers()
 
+    override suspend fun getCustomerById(customerId: Long): Customer? =
+        utangDao.getCustomerById(customerId)
+
     override fun getCustomerBalance(customerId: Long): Flow<Double> = 
         utangDao.getCustomerBalance(customerId).map { it ?: 0.0 }
 
@@ -43,6 +46,11 @@ class UtangRepositoryImpl(private val utangDao: UtangDao) : UtangRepository {
             note = note
         )
         utangDao.insertUtangRecord(record)
+    }
+
+    override suspend fun deleteCustomer(customer: Customer) {
+        utangDao.deleteUtangRecordsByCustomerId(customer.id)
+        utangDao.deleteCustomer(customer)
     }
 
     override suspend fun deleteAllUtangData() {

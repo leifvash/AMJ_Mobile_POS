@@ -88,6 +88,6 @@ class AppContainerImpl(override val context: Context) : AppContainer {
     }
 
     override val authRepository: AuthRepository by lazy {
-        FirebaseAuthRepositoryImpl(auth, firestore)
+        FirebaseAuthRepositoryImpl(context, auth, firestore)
     }
 }

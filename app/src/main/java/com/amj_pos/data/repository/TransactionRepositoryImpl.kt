@@ -11,6 +11,7 @@ import com.amj_pos.data.local.entities.TransactionItem
 import com.amj_pos.data.local.entities.DailyStat
 import com.amj_pos.data.local.entities.UtangRecord
 import com.amj_pos.data.local.entities.UtangType
+import com.amj_pos.data.local.entities.PaymentMethod
 import com.amj_pos.domain.repository.TransactionRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,9 @@ class TransactionRepositoryImpl(
 
     override fun getDailySales(branchName: String): Flow<Double> =
         transactionDao.getDailySalesByBranch(branchName).map { it ?: 0.0 }
+
+    override fun getDailySalesByMethods(branchName: String, methods: List<PaymentMethod>): Flow<Double> =
+        transactionDao.getDailySalesByBranchAndMethods(branchName, methods).map { it ?: 0.0 }
 
     override fun getDailyStats(days: Int): Flow<List<DailyStat>> {
         val since = System.currentTimeMillis() - (days.toLong() * 24 * 60 * 60 * 1000)

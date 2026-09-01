@@ -198,20 +198,28 @@ class BluetoothPrinterRepositoryImpl(private val context: Context) : PrinterRepo
                 val boldOff = byteArrayOf(ESC, 69, 0)
                 val init = byteArrayOf(ESC, 64)
 
+                val appPrefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                val storeName = appPrefs.getString("store_name", "AMJ SARI-SARI STORE") ?: "AMJ SARI-SARI STORE"
+
                 os.write(init)
                 os.write(center)
                 os.write(boldOn)
-                os.write("AMJ SARI-SARI STORE\n".toByteArray())
+                os.write("$storeName\n".toByteArray())
                 os.write(boldOff)
                 
                 // Dynamic Branch Address
                 when (transaction.branchName) {
                     "Bayanga" -> {
+                        os.write("Branch: Bayanga\n".toByteArray())
                         os.write("Bayanga, Cagayan de Oro City\n".toByteArray())
                     }
-                    else -> {
-                        // Default to Mambuaya
+                    "Mambuaya" -> {
+                        os.write("Branch: Mambuaya\n".toByteArray())
                         os.write("NHA Graceville, Mambuaya,\n".toByteArray())
+                        os.write("Cagayan de Oro City\n".toByteArray())
+                    }
+                    else -> {
+                        // All Branches or unknown
                         os.write("Cagayan de Oro City\n".toByteArray())
                     }
                 }

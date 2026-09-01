@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +26,7 @@ fun UtangScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var customerToPay by remember { mutableStateOf<Customer?>(null) }
+    var customerToDelete by remember { mutableStateOf<Customer?>(null) }
 
     Scaffold(
         topBar = {
@@ -65,11 +67,36 @@ fun UtangScreen(
                         customer = customer,
                         balance = balance,
                         onPay = { customerToPay = customer },
+                        onDelete = { customerToDelete = customer },
                         onClick = { onNavigateToDetail(customer.id, customer.name) }
                     )
                 }
             }
         }
+    }
+
+    if (customerToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { customerToDelete = null },
+            title = { Text("Delete Customer") },
+            text = { Text("Are you sure you want to delete ${customerToDelete?.name}? All their utang records will be permanently removed.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        customerToDelete?.let { viewModel.deleteCustomer(it) }
+                        customerToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { customerToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showAddDialog) {
@@ -99,6 +126,7 @@ fun CustomerItem(
     customer: Customer,
     balance: Double,
     onPay: () -> Unit,
+    onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
     Card(
@@ -120,6 +148,10 @@ fun CustomerItem(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(onClick = onPay, enabled = balance > 0) {
                     Text("Pay")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete Customer", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }

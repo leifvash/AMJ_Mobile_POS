@@ -1,5 +1,6 @@
 package com.amj_pos.ui.inventory
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -95,7 +96,7 @@ fun ProductDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
-                Text("Adjust Stock (Spoilage/Restock)")
+                Text("Adjust Stock")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -157,6 +158,7 @@ fun StockAdjustmentDialog(
 ) {
     var amount by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("Restock") }
+    var isAddition by remember { mutableStateOf(true) }
     val reasons = listOf("Restock", "Spoilage", "Consumption", "Correction")
 
     AlertDialog(
@@ -164,17 +166,45 @@ fun StockAdjustmentDialog(
         title = { Text("Adjust Stock") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Add/Subtract Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { isAddition = true },
+                        modifier = Modifier.weight(1f),
+                        colors = if (isAddition) ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)) 
+                                 else ButtonDefaults.outlinedButtonColors()
+                    ) {
+                        Text("Add (+)", color = if (isAddition) Color.White else Color(0xFF2E7D32))
+                    }
+                    Button(
+                        onClick = { isAddition = false },
+                        modifier = Modifier.weight(1f),
+                        colors = if (!isAddition) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) 
+                                 else ButtonDefaults.outlinedButtonColors()
+                    ) {
+                        Text("Subtract (-)", color = if (!isAddition) Color.White else MaterialTheme.colorScheme.error)
+                    }
+                }
+
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Amount (use negative for loss)") },
+                    label = { Text("Amount (${if (isAddition) "to add" else "to subtract"})") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    placeholder = { Text("e.g., 2 or -0.5") }
+                    placeholder = { Text("e.g., 2 or 0.5") },
+                    modifier = Modifier.fillMaxWidth(),
+                    suffix = { Text(unitName) }
                 )
                 
                 Text("Reason:", style = MaterialTheme.typography.labelLarge)
                 reasons.forEach { r ->
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { reason = r },
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
                         RadioButton(selected = reason == r, onClick = { reason = r })
                         Text(r)
                     }
@@ -183,7 +213,10 @@ fun StockAdjustmentDialog(
         },
         confirmButton = {
             Button(onClick = { 
-                amount.toDoubleOrNull()?.let { onConfirm(it, reason) }
+                amount.toDoubleOrNull()?.let { 
+                    val finalAmount = if (isAddition) it else -it
+                    onConfirm(finalAmount, reason) 
+                }
             }) { Text("Confirm") }
         },
         dismissButton = {

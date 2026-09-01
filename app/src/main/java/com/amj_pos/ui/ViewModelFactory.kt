@@ -59,7 +59,8 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(TransactionHistoryViewModel::class.java) -> {
                 TransactionHistoryViewModel(
                     container.transactionRepository,
-                    container.authRepository
+                    container.authRepository,
+                    container.utangRepository
                 ) as T
             }
             modelClass.isAssignableFrom(InventoryViewModel::class.java) -> {

@@ -1,5 +1,6 @@
 package com.amj_pos.data.repository
 
+import android.content.Context
 import com.amj_pos.domain.model.User
 import com.amj_pos.domain.repository.AuthRepository
 import com.google.firebase.FirebaseApp
@@ -13,15 +14,18 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 class FirebaseAuthRepositoryImpl(
+    context: Context,
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore
 ) : AuthRepository {
 
-    private val _selectedBranch = MutableStateFlow<String?>(null)
+    private val sharedPrefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+    private val _selectedBranch = MutableStateFlow<String?>(sharedPrefs.getString("last_branch", null))
     override val selectedBranch: Flow<String?> = _selectedBranch.asStateFlow()
 
     override fun setSelectedBranch(branch: String?) {
         _selectedBranch.value = branch
+        sharedPrefs.edit().putString("last_branch", branch).apply()
     }
 
     override fun getInventoryPassword(): Flow<String> = callbackFlow {
@@ -89,7 +93,7 @@ class FirebaseAuthRepositoryImpl(
         }
     }
 
-    override suspend fun registerEmployee(name: String, username: String, pass: String, branchId: String): Result<Unit> {
+    override suspend fun registerEmployee(name: String, username: String, pass: String): Result<Unit> {
         return try {
             val email = if (username.contains("@")) username else "$username@amjpos.com"
             // Use a secondary Firebase app to register the employee without logging out the owner
@@ -110,8 +114,7 @@ class FirebaseAuthRepositoryImpl(
                 uid = uid,
                 name = name,
                 email = email,
-                role = "employee",
-                assigned_branch = branchId
+                role = "employee"
             )
             
             firestore.collection("users").document(uid).set(employee).await()

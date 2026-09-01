@@ -37,6 +37,12 @@ class UtangViewModel(
         }
     }
 
+    fun deleteCustomer(customer: Customer) {
+        viewModelScope.launch {
+            utangRepository.deleteCustomer(customer)
+        }
+    }
+
     fun getCustomerBalance(customerId: Long): Flow<Double> {
         return utangRepository.getCustomerBalance(customerId)
     }

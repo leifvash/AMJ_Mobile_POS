@@ -12,7 +12,6 @@ data class RegistrationUiState(
     val name: String = "",
     val username: String = "",
     val password: String = "",
-    val branchId: String = "Mambuaya",
     val isLoading: Boolean = false,
     val success: Boolean = false,
     val error: String? = null
@@ -28,7 +27,6 @@ class EmployeeRegistrationViewModel(
     fun onNameChange(value: String) = _uiState.update { it.copy(name = value) }
     fun onUsernameChange(value: String) = _uiState.update { it.copy(username = value) }
     fun onPasswordChange(value: String) = _uiState.update { it.copy(password = value) }
-    fun onBranchChange(value: String) = _uiState.update { it.copy(branchId = value) }
     fun onMessageShown() = _uiState.update { it.copy(error = null) }
 
     fun register() {
@@ -41,7 +39,7 @@ class EmployeeRegistrationViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             val result = authRepository.registerEmployee(
-                state.name, state.username, state.password, state.branchId
+                state.name, state.username, state.password
             )
             result.onSuccess {
                 _uiState.update { it.copy(isLoading = false, success = true) }

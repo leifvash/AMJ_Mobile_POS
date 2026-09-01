@@ -34,6 +34,9 @@ interface TransactionDao {
     @Query("SELECT SUM(totalAmount) FROM transactions WHERE date(timestamp / 1000, 'unixepoch', 'localtime') = date('now', 'localtime') AND (:branchName = '' OR branchName = :branchName)")
     fun getDailySalesByBranch(branchName: String): Flow<Double?>
 
+    @Query("SELECT SUM(totalAmount) FROM transactions WHERE date(timestamp / 1000, 'unixepoch', 'localtime') = date('now', 'localtime') AND (:branchName = '' OR branchName = :branchName) AND paymentMethod IN (:methods)")
+    fun getDailySalesByBranchAndMethods(branchName: String, methods: List<PaymentMethod>): Flow<Double?>
+
     @Query("""
         SELECT date(timestamp / 1000, 'unixepoch', 'localtime') as date, 
                SUM(totalAmount) as totalSales 

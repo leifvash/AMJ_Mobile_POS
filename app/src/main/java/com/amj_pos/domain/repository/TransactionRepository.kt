@@ -4,10 +4,12 @@ import androidx.paging.PagingData
 import com.amj_pos.data.local.entities.Transaction
 import com.amj_pos.data.local.entities.TransactionItem
 import com.amj_pos.data.local.entities.DailyStat
+import com.amj_pos.data.local.entities.PaymentMethod
 import kotlinx.coroutines.flow.Flow
 
 interface TransactionRepository {
     fun getDailySales(branchName: String = ""): Flow<Double>
+    fun getDailySalesByMethods(branchName: String = "", methods: List<PaymentMethod>): Flow<Double>
     fun getDailyStats(days: Int): Flow<List<DailyStat>>
     fun getAllTransactions(): Flow<List<Transaction>>
     fun getTransactionsPaged(branchName: String = ""): Flow<PagingData<Transaction>>

@@ -6,7 +6,9 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.amj_pos.data.local.entities.Transaction
 import com.amj_pos.data.local.entities.TransactionItem
+import com.amj_pos.domain.repository.AuthRepository
 import com.amj_pos.domain.repository.TransactionRepository
+import com.amj_pos.domain.repository.UtangRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -23,7 +25,8 @@ data class TransactionHistoryUiState(
 
 class TransactionHistoryViewModel(
     private val transactionRepository: TransactionRepository,
-    private val authRepository: com.amj_pos.domain.repository.AuthRepository
+    private val authRepository: AuthRepository,
+    private val utangRepository: UtangRepository
 ) : ViewModel() {
 
     private val _selectedDate = MutableStateFlow(
@@ -41,11 +44,12 @@ class TransactionHistoryViewModel(
             authRepository.currentUser.collect { user ->
                 val role = user?.role?.lowercase() ?: "employee"
                 _userRole.value = role
-                if (role == "employee") {
-                    _selectedBranchFilter.value = user?.assigned_branch ?: ""
-                } else {
-                    // Owners default to all branches, or keep current filter
-                }
+            }
+        }
+        
+        viewModelScope.launch {
+            authRepository.selectedBranch.collect { branch ->
+                _selectedBranchFilter.value = branch ?: ""
             }
         }
     }
@@ -103,5 +107,10 @@ class TransactionHistoryViewModel(
 
     suspend fun getTransactionItems(transactionId: Long): List<TransactionItem> {
         return transactionRepository.getItemsForTransaction(transactionId)
+    }
+
+    suspend fun getCustomerName(customerId: Long?): String? {
+        if (customerId == null) return null
+        return utangRepository.getCustomerById(customerId)?.name ?: "Deleted Customer"
     }
 }

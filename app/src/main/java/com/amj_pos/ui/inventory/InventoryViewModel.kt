@@ -41,9 +41,8 @@ class InventoryViewModel(
         
         viewModelScope.launch {
             authRepository.selectedBranch.collect { branch ->
-                if (_userRole.value == "employee") {
-                    _selectedBranchFilter.value = branch ?: ""
-                }
+                // Automatically update filter when session branch changes
+                _selectedBranchFilter.value = branch ?: ""
             }
         }
     }

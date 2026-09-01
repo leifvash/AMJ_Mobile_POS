@@ -13,6 +13,9 @@ interface UtangDao {
     @Query("SELECT * FROM customers ORDER BY name ASC")
     fun getAllCustomers(): Flow<List<Customer>>
 
+    @Query("SELECT * FROM customers WHERE id = :customerId")
+    suspend fun getCustomerById(customerId: Long): Customer?
+
     @Insert
     suspend fun insertUtangRecord(record: UtangRecord)
 
@@ -31,6 +34,12 @@ interface UtangDao {
 
     @Query("SELECT * FROM utang_records WHERE customerId = :customerId ORDER BY timestamp DESC")
     fun getUtangHistory(customerId: Long): Flow<List<UtangRecord>>
+
+    @Query("DELETE FROM utang_records WHERE customerId = :customerId")
+    suspend fun deleteUtangRecordsByCustomerId(customerId: Long)
+
+    @Delete
+    suspend fun deleteCustomer(customer: Customer)
 
     @Query("DELETE FROM customers")
     suspend fun deleteAllCustomers()

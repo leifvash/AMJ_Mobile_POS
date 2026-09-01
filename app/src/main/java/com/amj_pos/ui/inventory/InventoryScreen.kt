@@ -39,9 +39,11 @@ fun InventoryScreen(
                 title = { 
                     Column {
                         Text("Inventory")
-                        if (uiState.selectedBranch.isNotEmpty()) {
-                            Text(uiState.selectedBranch, style = MaterialTheme.typography.labelSmall)
-                        }
+                        Text(
+                            text = if (uiState.selectedBranch.isEmpty()) "All Branches" else uiState.selectedBranch,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 },
                 navigationIcon = {
@@ -223,7 +225,7 @@ fun ProductItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = userRole == "owner") { onClick() }
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier

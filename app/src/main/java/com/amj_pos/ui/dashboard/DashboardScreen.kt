@@ -62,8 +62,46 @@ fun DashboardScreen(
                 title = { 
                     Column {
                         Text("AMJ Sari-Sari POS", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        if (uiState.userName.isNotBlank()) {
-                            Text("Hi, ${uiState.userName}!", style = MaterialTheme.typography.labelSmall)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = if (uiState.selectedBranch.isEmpty()) "Select Branch" else uiState.selectedBranch,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (uiState.selectedBranch.isEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            )
+                            if (uiState.userRole == "owner") {
+                                var showBranchSwitcher by remember { mutableStateOf(false) }
+                                IconButton(
+                                    onClick = { showBranchSwitcher = true },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(Icons.Default.Settings, contentDescription = "Switch Branch", modifier = Modifier.size(16.dp))
+                                }
+                                if (showBranchSwitcher) {
+                                    DropdownMenu(expanded = showBranchSwitcher, onDismissRequest = { showBranchSwitcher = false }) {
+                                        DropdownMenuItem(
+                                            text = { Text("All Branches") },
+                                            onClick = { 
+                                                viewModel.switchBranch("")
+                                                showBranchSwitcher = false 
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Mambuaya") },
+                                            onClick = { 
+                                                viewModel.switchBranch("Mambuaya")
+                                                showBranchSwitcher = false 
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Bayanga") },
+                                            onClick = { 
+                                                viewModel.switchBranch("Bayanga")
+                                                showBranchSwitcher = false 
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -96,30 +134,62 @@ fun DashboardScreen(
                 onSettings = onNavigateToPrinterSettings
             )
 
-            // Summary Cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                SummaryCard(
-                    label = "Today's Sales",
-                    amount = uiState.dailySales,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onNavigateToAnalytics() }
-                )
-                SummaryCard(
-                    label = "Total Utang",
-                    amount = uiState.totalUtang,
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onNavigateToUtang() }
+            if (uiState.userName.isNotBlank()) {
+                Text(
+                    text = "Hello, ${uiState.userName}!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
+
+            // Summary Cards
+            SummaryCard(
+                label = "Today's Total Sales",
+                amount = uiState.dailySales,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToAnalytics() }
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SummaryCard(
+                    label = "Cash",
+                    amount = uiState.cashSales,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.weight(1f)
+                )
+                SummaryCard(
+                    label = "GCash",
+                    amount = uiState.gcashSales,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.weight(1f)
+                )
+                SummaryCard(
+                    label = "Today's Utang",
+                    amount = uiState.dailyUtangSales,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            SummaryCard(
+                label = "Overall Outstanding Utang",
+                amount = uiState.totalUtang,
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToUtang() }
+            )
 
             if (uiState.lowStockProducts.isNotEmpty()) {
                 LowStockAlertSection(products = uiState.lowStockProducts, onAction = onNavigateToInventory)
@@ -234,12 +304,12 @@ fun SummaryCard(
                 .padding(12.dp),
             verticalArrangement = Arrangement.Center
         ) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
+            Text(label, style = MaterialTheme.typography.labelSmall)
             Text(
                 text = currencyFormatter.format(amount),
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    fontSize = 16.sp
                 )
             )
         }

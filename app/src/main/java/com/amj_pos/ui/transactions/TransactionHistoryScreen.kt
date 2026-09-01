@@ -71,16 +71,17 @@ fun TransactionHistoryScreen(
                     ) {
                         Column {
                             Text("Date: ${uiState.selectedDate}", style = MaterialTheme.typography.titleMedium)
-                            if (uiState.selectedBranch.isNotEmpty()) {
-                                Text("Branch: ${uiState.selectedBranch}", style = MaterialTheme.typography.bodySmall)
-                            }
+                            Text(
+                                text = if (uiState.selectedBranch.isEmpty()) "All Branches" else "Branch: ${uiState.selectedBranch}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                         
                         if (uiState.userRole == "owner") {
                             var expanded by remember { mutableStateOf(false) }
                             Box {
                                 TextButton(onClick = { expanded = true }) {
-                                    Text(if (uiState.selectedBranch.isEmpty()) "All Branches" else uiState.selectedBranch)
+                                    Text(if (uiState.selectedBranch.isEmpty()) "Filter: All" else "Filter: ${uiState.selectedBranch}")
                                 }
                                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                                     DropdownMenuItem(
@@ -140,6 +141,7 @@ fun TransactionHistoryScreen(
                             TransactionItemCard(
                                 transaction = transaction,
                                 getItems = { viewModel.getTransactionItems(transaction.id) },
+                                getCustomerName = { viewModel.getCustomerName(transaction.customerId) },
                                 onVoid = { transactionToVoid = transaction }
                             )
                         }
@@ -207,11 +209,19 @@ fun TransactionHistoryScreen(
 fun TransactionItemCard(
     transaction: Transaction,
     getItems: suspend () -> List<TransactionItem>,
+    getCustomerName: suspend () -> String?,
     onVoid: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var items by remember { mutableStateOf<List<TransactionItem>>(emptyList()) }
+    var customerName by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(transaction.customerId) {
+        if (transaction.isUtang) {
+            customerName = getCustomerName()
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -250,6 +260,9 @@ fun TransactionItemCard(
                 }
             }
             Text("Method: ${transaction.paymentMethod}", style = MaterialTheme.typography.bodySmall)
+            customerName?.let {
+                Text("Customer: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+            }
             
             if (expanded) {
                 Spacer(modifier = Modifier.height(8.dp))
